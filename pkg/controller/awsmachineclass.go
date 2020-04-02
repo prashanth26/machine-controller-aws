@@ -145,15 +145,19 @@ func (c *controller) reconcileClusterAWSMachineClass(class *v1alpha1.AWSMachineC
 			return nil
 		}
 
-		machineDeployments, err := c.findMachineDeploymentsForClass(AWSMachineClassKind, class.Name)
-		if err != nil {
-			return err
-		}
-		machineSets, err := c.findMachineSetsForClass(AWSMachineClassKind, class.Name)
-		if err != nil {
-			return err
-		}
-		if len(machineDeployments) == 0 && len(machineSets) == 0 && len(machines) == 0 {
+		/*
+			TODO: Check this at CMI-Server?
+			machineDeployments, err := c.findMachineDeploymentsForClass(AWSMachineClassKind, class.Name)
+			if err != nil {
+				return err
+			}
+			machineSets, err := c.findMachineSetsForClass(AWSMachineClassKind, class.Name)
+			if err != nil {
+				return err
+			}
+		*/
+
+		if len(machines) == 0 {
 			return c.deleteAWSMachineClassFinalizers(class)
 		}
 

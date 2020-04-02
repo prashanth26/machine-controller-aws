@@ -14,10 +14,7 @@ managevm
 controller_manager
 mcm.out
 kubectl
-
-# Binary files of MCM
-./machine-controller-manager
-./managevm
+main
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *coverprofile.out*
