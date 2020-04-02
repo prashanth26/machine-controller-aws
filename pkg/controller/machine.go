@@ -36,10 +36,13 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/gardener/machine-controller-aws/pkg/awsdriver"
+	"github.com/gardener/machine-controller-manager/pkg/util/provider/drain"
+
 	machineapi "github.com/gardener/machine-controller-manager/pkg/apis/machine"
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/validation"
-	"github.com/gardener/machine-controller-manager/pkg/driver"
+	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 )
 
 const (
@@ -145,7 +148,7 @@ func (c *controller) reconcileClusterMachine(machine *v1alpha1.Machine) error {
 		return err
 	}
 
-	driver := driver.NewDriver(machine.Spec.ProviderID, secretRef, machine.Spec.Class.Kind, MachineClass, machine.Name)
+	driver := awsdriver.NewDriver(machine.Spec.ProviderID, secretRef, machine.Spec.Class.Kind, MachineClass, machine.Name)
 	actualProviderID, err := driver.GetExisting()
 	if err != nil {
 		return err
@@ -584,7 +587,7 @@ func (c *controller) machineDelete(machine *v1alpha1.Machine, driver driver.Driv
 				forceDeletePods         = false
 				forceDeleteMachine      = false
 				timeOutOccurred         = false
-				maxEvictRetries         = int32(math.Min(float64(c.safetyOptions.MaxEvictRetries), c.safetyOptions.MachineDrainTimeout.Duration.Seconds()/PodEvictionRetryInterval.Seconds()))
+				maxEvictRetries         = int32(math.Min(float64(c.safetyOptions.MaxEvictRetries), c.safetyOptions.MachineDrainTimeout.Duration.Seconds()/drain.PodEvictionRetryInterval.Seconds()))
 				pvDetachTimeOut         = c.safetyOptions.PvDetachTimeout.Duration
 				timeOutDuration         = c.safetyOptions.MachineDrainTimeout.Duration
 				forceDeleteLabelPresent = machine.Labels["force-deletion"] == "True"
@@ -614,7 +617,7 @@ func (c *controller) machineDelete(machine *v1alpha1.Machine, driver driver.Driv
 			buf := bytes.NewBuffer([]byte{})
 			errBuf := bytes.NewBuffer([]byte{})
 
-			drainOptions := NewDrainOptions(
+			drainOptions := drain.NewDrainOptions(
 				c.targetCoreClient,
 				timeOutDuration,
 				maxEvictRetries,

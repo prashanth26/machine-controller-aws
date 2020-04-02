@@ -20,6 +20,7 @@ package options
 import (
 	"time"
 
+	mcmoptions "github.com/gardener/machine-controller-manager/pkg/options"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -69,7 +70,7 @@ type MachineControllerManagerConfiguration struct {
 	// kubeAPIBurst is the burst to use while talking with kubernetes apiserver.
 	KubeAPIBurst int32
 	// leaderElection defines the configuration of leader election client.
-	LeaderElection LeaderElectionConfiguration
+	LeaderElection mcmoptions.LeaderElectionConfiguration
 	// How long to wait between starting controller managers
 	ControllerStartInterval metav1.Duration
 	// minResyncPeriod is the resync period in reflectors; will be random between
@@ -89,11 +90,6 @@ type MachineControllerManagerConfiguration struct {
 // SafetyOptions are used to configure the upper-limit and lower-limit
 // while configuring freezing of machineSet objects
 type SafetyOptions struct {
-	// SafetyUp
-	SafetyUp int32
-	// SafetyDown
-	SafetyDown int32
-
 	// Timeout (in durartion) used while creation of
 	// a machine before it is declared as failed
 	MachineCreationTimeout metav1.Duration
@@ -108,16 +104,13 @@ type SafetyOptions struct {
 	MaxEvictRetries int32
 	// Timeout (in duration) used while waiting for PV to detach
 	PvDetachTimeout metav1.Duration
+
 	// Timeout (in duration) for which the APIServer can be down before
 	// declare the machine controller frozen by safety controller
 	MachineSafetyAPIServerStatusCheckTimeout metav1.Duration
-
 	// Period (in durartion) used to poll for orphan VMs
 	// by safety controller
 	MachineSafetyOrphanVMsPeriod metav1.Duration
-	// Period (in durartion) used to poll for overshooting
-	// of machine objects backing a machineSet by safety controller
-	MachineSafetyOvershootingPeriod metav1.Duration
 	// Period (in duration) used to poll for APIServer's health
 	// by safety controller
 	MachineSafetyAPIServerStatusCheckPeriod metav1.Duration

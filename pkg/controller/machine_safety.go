@@ -18,18 +18,17 @@ limitations under the License.
 package controller
 
 import (
-	"fmt"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/gardener/machine-controller-aws/pkg/awsdriver"
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
-	"github.com/gardener/machine-controller-manager/pkg/driver"
+	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"k8s.io/klog"
 )
 
@@ -55,44 +54,6 @@ func (c *controller) reconcileClusterMachineSafetyOrphanVMs(key string) error {
 	c.checkVMObjects()
 
 	return nil
-}
-
-// reconcileClusterMachineSafetyOvershooting checks all machineSet/machineDeployment
-// if the number of machine objects backing them is way beyond its desired replicas
-func (c *controller) reconcileClusterMachineSafetyOvershooting(key string) error {
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-
-	reSyncAfter := c.safetyOptions.MachineSafetyOvershootingPeriod.Duration
-	defer c.machineSafetyOvershootingQueue.AddAfter("", reSyncAfter)
-
-	klog.V(4).Infof("reconcileClusterMachineSafetyOvershooting: Start")
-	defer klog.V(4).Infof("reconcileClusterMachineSafetyOvershooting: End, reSync-Period: %v", reSyncAfter)
-
-	err := c.checkAndFreezeORUnfreezeMachineSets()
-	if err != nil {
-		klog.Errorf("SafetyController: %v", err)
-	}
-	cache.WaitForCacheSync(stopCh, c.machineSetSynced, c.machineDeploymentSynced)
-
-	err = c.syncMachineDeploymentFreezeState()
-	if err != nil {
-		klog.Errorf("SafetyController: %v", err)
-	}
-	cache.WaitForCacheSync(stopCh, c.machineDeploymentSynced)
-
-	err = c.unfreezeMachineDeploymentsWithUnfreezeAnnotation()
-	if err != nil {
-		klog.Errorf("SafetyController: %v", err)
-	}
-	cache.WaitForCacheSync(stopCh, c.machineSetSynced)
-
-	err = c.unfreezeMachineSetsWithUnfreezeAnnotation()
-	if err != nil {
-		klog.Errorf("SafetyController: %v", err)
-	}
-
-	return err
 }
 
 // reconcileClusterMachineSafetyAPIServer checks control and target clusters
@@ -196,219 +157,9 @@ func (c *controller) isAPIServerUp() bool {
 	return true
 }
 
-// unfreezeMachineDeploymentsWithUnfreezeAnnotation unfreezes machineDeployment with unfreeze annotation
-func (c *controller) unfreezeMachineDeploymentsWithUnfreezeAnnotation() error {
-	machineDeployments, err := c.machineDeploymentLister.List(labels.Everything())
-	if err != nil {
-		klog.Error("SafetyController: Error while trying to LIST machineDeployments - ", err)
-		return err
-	}
-
-	for _, machineDeployment := range machineDeployments {
-		if _, exists := machineDeployment.Annotations[UnfreezeAnnotation]; exists {
-			klog.V(2).Infof("SafetyController: UnFreezing MachineDeployment %q due to setting unfreeze annotation", machineDeployment.Name)
-
-			err := c.unfreezeMachineDeployment(machineDeployment, "UnfreezeAnnotation")
-			if err != nil {
-				return err
-			}
-
-			// Apply UnfreezeAnnotation on all machineSets backed by the machineDeployment
-			machineSets, err := c.getMachineSetsForMachineDeployment(machineDeployment)
-			if err == nil {
-				for _, machineSet := range machineSets {
-					// Get the latest version of the machineSet so that we can avoid conflicts
-					machineSet, err := c.controlMachineClient.MachineSets(machineSet.Namespace).Get(machineSet.Name, metav1.GetOptions{})
-					if err != nil {
-						// Some error occued while fetching object from API server
-						klog.Errorf("SafetyController: Failed to GET machineSet. Error: %s", err)
-						return err
-					}
-					clone := machineSet.DeepCopy()
-					if clone.Annotations == nil {
-						clone.Annotations = make(map[string]string, 0)
-					}
-					clone.Annotations[UnfreezeAnnotation] = "True"
-					machineSet, err = c.controlMachineClient.MachineSets(clone.Namespace).Update(clone)
-					if err != nil {
-						klog.Errorf("SafetyController: MachineSet UPDATE failed. Error: %s", err)
-						return err
-					}
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-// unfreezeMachineSetsWithUnfreezeAnnotation unfreezes machineSets with unfreeze annotation
-func (c *controller) unfreezeMachineSetsWithUnfreezeAnnotation() error {
-	machineSets, err := c.machineSetLister.List(labels.Everything())
-	if err != nil {
-		klog.Error("SafetyController: Error while trying to LIST machineSets - ", err)
-		return err
-	}
-
-	for _, machineSet := range machineSets {
-		if _, exists := machineSet.Annotations[UnfreezeAnnotation]; exists {
-			klog.V(2).Infof("SafetyController: UnFreezing MachineSet %q due to setting unfreeze annotation", machineSet.Name)
-
-			err := c.unfreezeMachineSet(machineSet)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-// syncMachineDeploymentFreezeState syncs freeze labels and conditions to keep it consistent
-func (c *controller) syncMachineDeploymentFreezeState() error {
-	machineDeployments, err := c.machineDeploymentLister.List(labels.Everything())
-	if err != nil {
-		klog.Error("SafetyController: Error while trying to LIST machineDeployments - ", err)
-		return err
-	}
-
-	for _, machineDeployment := range machineDeployments {
-
-		machineDeploymentFreezeLabelPresent := (machineDeployment.Labels["freeze"] == "True")
-		machineDeploymentFrozenConditionPresent := (GetMachineDeploymentCondition(machineDeployment.Status, v1alpha1.MachineDeploymentFrozen) != nil)
-
-		machineDeploymentHasFrozenMachineSet := false
-		machineSets, err := c.getMachineSetsForMachineDeployment(machineDeployment)
-		if err == nil {
-			for _, machineSet := range machineSets {
-				machineSetFreezeLabelPresent := (machineSet.Labels["freeze"] == "True")
-				machineSetFrozenConditionPresent := (GetCondition(&machineSet.Status, v1alpha1.MachineSetFrozen) != nil)
-
-				if machineSetFreezeLabelPresent || machineSetFrozenConditionPresent {
-					machineDeploymentHasFrozenMachineSet = true
-					break
-				}
-			}
-		}
-
-		if machineDeploymentHasFrozenMachineSet {
-			// If machineDeployment has atleast one frozen machine set backing it
-
-			if !machineDeploymentFreezeLabelPresent || !machineDeploymentFrozenConditionPresent {
-				// Either the freeze label or freeze condition is not present on the machineDeployment
-				message := "MachineDeployment State was inconsistent, hence safety controller has fixed this and frozen it"
-				err := c.freezeMachineDeployment(machineDeployment, MachineDeploymentStateSync, message)
-				if err != nil {
-					return err
-				}
-			}
-		} else {
-			// If machineDeployment has no frozen machine set backing it
-
-			if machineDeploymentFreezeLabelPresent || machineDeploymentFrozenConditionPresent {
-				// Either the freeze label or freeze condition is present present on the machineDeployment
-				err := c.unfreezeMachineDeployment(machineDeployment, MachineDeploymentStateSync)
-				if err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-// checkAndFreezeORUnfreezeMachineSets freezes/unfreezes machineSets/machineDeployments
-// which have much greater than desired number of replicas of machine objects
-func (c *controller) checkAndFreezeORUnfreezeMachineSets() error {
-	machineSets, err := c.machineSetLister.List(labels.Everything())
-	if err != nil {
-		klog.Error("SafetyController: Error while trying to LIST machineSets - ", err)
-		return err
-	}
-
-	for _, machineSet := range machineSets {
-
-		filteredMachines, err := c.machineLister.List(labels.Everything())
-		if err != nil {
-			klog.Error("SafetyController: Error while trying to LIST machines - ", err)
-			return err
-		}
-		fullyLabeledReplicasCount := int32(0)
-		templateLabel := labels.Set(machineSet.Spec.Template.Labels).AsSelectorPreValidated()
-		for _, machine := range filteredMachines {
-			if templateLabel.Matches(labels.Set(machine.Labels)) &&
-				len(machine.OwnerReferences) >= 1 {
-				for i := range machine.OwnerReferences {
-					if machine.OwnerReferences[i].Name == machineSet.Name {
-						fullyLabeledReplicasCount++
-					}
-				}
-			}
-		}
-
-		// Freeze machinesets when replica count exceeds by SafetyUP
-		higherThreshold := 2*machineSet.Spec.Replicas + c.safetyOptions.SafetyUp
-		// Unfreeze machineset when replica count reaches higherThreshold - SafetyDown
-		lowerThreshold := higherThreshold - c.safetyOptions.SafetyDown
-
-		machineDeployments := c.getMachineDeploymentsForMachineSet(machineSet)
-		if len(machineDeployments) >= 1 {
-			machineDeployment := machineDeployments[0]
-			if machineDeployment != nil {
-				surge, err := intstrutil.GetValueFromIntOrPercent(
-					machineDeployment.Spec.Strategy.RollingUpdate.MaxSurge,
-					int(machineDeployment.Spec.Replicas),
-					true,
-				)
-				if err != nil {
-					klog.Error("SafetyController: Error while trying to GET surge value - ", err)
-					return err
-				}
-
-				higherThreshold = machineDeployment.Spec.Replicas + int32(surge) + c.safetyOptions.SafetyUp
-				lowerThreshold = higherThreshold - c.safetyOptions.SafetyDown
-			}
-		}
-
-		klog.V(4).Infof(
-			"checkAndFreezeORUnfreezeMachineSets: MS:%q LowerThreshold:%d FullyLabeledReplicas:%d HigherThreshold:%d",
-			machineSet.Name,
-			lowerThreshold,
-			fullyLabeledReplicasCount,
-			higherThreshold,
-		)
-
-		machineSetFrozenCondition := GetCondition(&machineSet.Status, v1alpha1.MachineSetFrozen)
-
-		if machineSet.Labels["freeze"] != "True" &&
-			fullyLabeledReplicasCount >= higherThreshold {
-			message := fmt.Sprintf(
-				"The number of machines backing MachineSet: %s is %d >= %d which is the Max-ScaleUp-Limit",
-				machineSet.Name,
-				fullyLabeledReplicasCount,
-				higherThreshold,
-			)
-			return c.freezeMachineSetAndDeployment(machineSet, OverShootingReplicaCount, message)
-
-		} else if fullyLabeledReplicasCount <= lowerThreshold &&
-			(machineSet.Labels["freeze"] == "True" || machineSetFrozenCondition != nil) {
-			// Unfreeze if number of replicas is less than or equal to lowerThreshold
-			// and freeze label or condition exists on machineSet
-			return c.unfreezeMachineSetAndDeployment(machineSet)
-		}
-	}
-	return nil
-}
-
 // checkVMObjects checks for orphan VMs (VMs that don't have a machine object backing)
 func (c *controller) checkVMObjects() {
 	c.checkAWSMachineClass()
-	c.checkOSMachineClass()
-	c.checkAzureMachineClass()
-	c.checkGCPMachineClass()
-	c.checkAlicloudMachineClass()
-	c.checkPacketMachineClass()
 }
 
 // checkAWSMachineClass checks for orphan VMs in AWSMachinesClasses
@@ -420,96 +171,6 @@ func (c *controller) checkAWSMachineClass() {
 	}
 
 	for _, machineClass := range AWSMachineClasses {
-		c.checkMachineClass(
-			machineClass,
-			machineClass.Spec.SecretRef,
-			machineClass.Name,
-			machineClass.Kind,
-		)
-	}
-}
-
-// checkOSMachineClass checks for orphan VMs in OSMachinesClasses
-func (c *controller) checkOSMachineClass() {
-	OSMachineClasses, err := c.openStackMachineClassLister.List(labels.Everything())
-	if err != nil {
-		klog.Error("SafetyController: Error while trying to LIST machineClasses ", err)
-		return
-	}
-
-	for _, machineClass := range OSMachineClasses {
-		c.checkMachineClass(
-			machineClass,
-			machineClass.Spec.SecretRef,
-			machineClass.Name,
-			machineClass.Kind,
-		)
-	}
-}
-
-// checkOSMachineClass checks for orphan VMs in AzureMachinesClasses
-func (c *controller) checkAzureMachineClass() {
-	AzureMachineClasses, err := c.azureMachineClassLister.List(labels.Everything())
-	if err != nil {
-		klog.Error("SafetyController: Error while trying to LIST machineClasses ", err)
-		return
-	}
-
-	for _, machineClass := range AzureMachineClasses {
-		c.checkMachineClass(
-			machineClass,
-			machineClass.Spec.SecretRef,
-			machineClass.Name,
-			machineClass.Kind,
-		)
-	}
-}
-
-// checkGCPMachineClass checks for orphan VMs in GCPMachinesClasses
-func (c *controller) checkGCPMachineClass() {
-	GCPMachineClasses, err := c.gcpMachineClassLister.List(labels.Everything())
-	if err != nil {
-		klog.Error("SafetyController: Error while trying to LIST machineClasses ", err)
-		return
-	}
-
-	for _, machineClass := range GCPMachineClasses {
-		c.checkMachineClass(
-			machineClass,
-			machineClass.Spec.SecretRef,
-			machineClass.Name,
-			machineClass.Kind,
-		)
-	}
-}
-
-// checkAlicloudMachineClass checks for orphan VMs in AlicloudMachinesClasses
-func (c *controller) checkAlicloudMachineClass() {
-	AlicloudMachineClasses, err := c.alicloudMachineClassLister.List(labels.Everything())
-	if err != nil {
-		klog.Error("SafetyController: Error while trying to LIST machineClasses ", err)
-		return
-	}
-
-	for _, machineClass := range AlicloudMachineClasses {
-		c.checkMachineClass(
-			machineClass,
-			machineClass.Spec.SecretRef,
-			machineClass.Name,
-			machineClass.Kind,
-		)
-	}
-}
-
-// checkPacketMachineClass checks for orphan VMs in PacketMachinesClasses
-func (c *controller) checkPacketMachineClass() {
-	PacketMachineClasses, err := c.packetMachineClassLister.List(labels.Everything())
-	if err != nil {
-		klog.Error("SafetyController: Error while trying to LIST machineClasses ", err)
-		return
-	}
-
-	for _, machineClass := range PacketMachineClasses {
 		c.checkMachineClass(
 			machineClass,
 			machineClass.Spec.SecretRef,
@@ -534,7 +195,7 @@ func (c *controller) checkMachineClass(
 	}
 
 	// Dummy driver object being created to invoke GetVMs
-	dvr := driver.NewDriver(
+	dvr := awsdriver.NewDriver(
 		"",
 		secret,
 		classKind,
@@ -591,21 +252,10 @@ func (c *controller) checkMachineClass(
 	}
 }
 
-// addMachineToSafety enqueues into machineSafetyQueue when a new machine is added
-func (c *controller) addMachineToSafety(obj interface{}) {
-	machine := obj.(*v1alpha1.Machine)
-	c.enqueueMachineSafetyOvershootingKey(machine)
-}
-
 // deleteMachineToSafety enqueues into machineSafetyQueue when a new machine is deleted
 func (c *controller) deleteMachineToSafety(obj interface{}) {
 	machine := obj.(*v1alpha1.Machine)
 	c.enqueueMachineSafetyOrphanVMsKey(machine)
-}
-
-// enqueueMachineSafetyOvershootingKey enqueues into machineSafetyOvershootingQueue
-func (c *controller) enqueueMachineSafetyOvershootingKey(obj interface{}) {
-	c.machineSafetyOvershootingQueue.Add("")
 }
 
 // enqueueMachineSafetyOrphanVMsKey enqueues into machineSafetyOrphanVMsQueue
@@ -624,7 +274,7 @@ func (c *controller) deleteOrphanVM(vm driver.VMs, secretRef *corev1.Secret, kin
 		machineName = v
 	}
 
-	dvr := driver.NewDriver(
+	dvr := awsdriver.NewDriver(
 		machineID,
 		secretRef,
 		kind,
@@ -638,203 +288,4 @@ func (c *controller) deleteOrphanVM(vm driver.VMs, secretRef *corev1.Secret, kin
 	} else {
 		klog.V(2).Infof("SafetyController: Orphan VM found and terminated VM: %s, %s", machineName, machineID)
 	}
-}
-
-// freezeMachineSetAndDeployment freezes machineSet and machineDeployment (who is the owner of the machineSet)
-func (c *controller) freezeMachineSetAndDeployment(machineSet *v1alpha1.MachineSet, reason string, message string) error {
-
-	klog.V(2).Infof("SafetyController: Freezing MachineSet %q due to %q", machineSet.Name, reason)
-
-	// Get the latest version of the machineSet so that we can avoid conflicts
-	machineSet, err := c.controlMachineClient.MachineSets(machineSet.Namespace).Get(machineSet.Name, metav1.GetOptions{})
-	if err != nil {
-		// Some error occued while fetching object from API server
-		klog.Errorf("SafetyController: Failed to GET machineSet. Error: %s", err)
-		return err
-	}
-
-	clone := machineSet.DeepCopy()
-	newStatus := clone.Status
-	mscond := NewMachineSetCondition(v1alpha1.MachineSetFrozen, v1alpha1.ConditionTrue, reason, message)
-	SetCondition(&newStatus, mscond)
-	clone.Status = newStatus
-	machineSet, err = c.controlMachineClient.MachineSets(clone.Namespace).UpdateStatus(clone)
-	if err != nil {
-		klog.Errorf("SafetyController: MachineSet/status UPDATE failed. Error: %s", err)
-		return err
-	}
-
-	clone = machineSet.DeepCopy()
-	if clone.Labels == nil {
-		clone.Labels = make(map[string]string)
-	}
-	clone.Labels["freeze"] = "True"
-	_, err = c.controlMachineClient.MachineSets(clone.Namespace).Update(clone)
-	if err != nil {
-		klog.Errorf("SafetyController: MachineSet UPDATE failed. Error: %s", err)
-		return err
-	}
-
-	machineDeployments := c.getMachineDeploymentsForMachineSet(machineSet)
-	if len(machineDeployments) >= 1 {
-		machineDeployment := machineDeployments[0]
-		if machineDeployment != nil {
-			err := c.freezeMachineDeployment(machineDeployment, reason, message)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	klog.V(2).Infof("SafetyController: Froze MachineSet %q due to overshooting of replicas", machineSet.Name)
-	return nil
-}
-
-// unfreezeMachineSetAndDeployment unfreezes machineSets and machineDeployment (who is the owner of the machineSet)
-func (c *controller) unfreezeMachineSetAndDeployment(machineSet *v1alpha1.MachineSet) error {
-
-	klog.V(2).Infof("SafetyController: UnFreezing MachineSet %q due to lesser than lower threshold replicas", machineSet.Name)
-
-	machineDeployments := c.getMachineDeploymentsForMachineSet(machineSet)
-	if len(machineDeployments) >= 1 {
-		machineDeployment := machineDeployments[0]
-		err := c.unfreezeMachineDeployment(machineDeployment, "UnderShootingReplicaCount")
-		if err != nil {
-			return err
-		}
-	}
-
-	err := c.unfreezeMachineSet(machineSet)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// unfreezeMachineSetsAndDeployments unfreezes machineSets
-func (c *controller) unfreezeMachineSet(machineSet *v1alpha1.MachineSet) error {
-
-	if machineSet == nil {
-		err := fmt.Errorf("SafetyController: Machine Set not passed")
-		klog.Errorf(err.Error())
-		return err
-	}
-
-	// Get the latest version of the machineSet so that we can avoid conflicts
-	machineSet, err := c.controlMachineClient.MachineSets(machineSet.Namespace).Get(machineSet.Name, metav1.GetOptions{})
-	if err != nil {
-		// Some error occued while fetching object from API server
-		klog.Errorf("SafetyController: Failed to GET machineSet. Error: %s", err)
-		return err
-	}
-
-	clone := machineSet.DeepCopy()
-	newStatus := clone.Status
-	RemoveCondition(&newStatus, v1alpha1.MachineSetFrozen)
-	clone.Status = newStatus
-	machineSet, err = c.controlMachineClient.MachineSets(clone.Namespace).UpdateStatus(clone)
-	if err != nil {
-		klog.Errorf("SafetyController: MachineSet/status UPDATE failed. Error: %s", err)
-		return err
-	}
-
-	clone = machineSet.DeepCopy()
-	if clone.Annotations == nil {
-		clone.Annotations = make(map[string]string)
-	}
-	delete(clone.Annotations, UnfreezeAnnotation)
-	if clone.Labels == nil {
-		clone.Labels = make(map[string]string)
-	}
-	delete(clone.Labels, "freeze")
-	_, err = c.controlMachineClient.MachineSets(clone.Namespace).Update(clone)
-	if err != nil {
-		klog.Errorf("SafetyController: MachineSet UPDATE failed. Error: %s", err)
-		return err
-	}
-
-	klog.V(2).Infof("SafetyController: Unfroze MachineSet %q", machineSet.Name)
-	return nil
-}
-
-// freezeMachineDeployment freezes the machineDeployment
-func (c *controller) freezeMachineDeployment(machineDeployment *v1alpha1.MachineDeployment, reason string, message string) error {
-	// Get the latest version of the machineDeployment so that we can avoid conflicts
-	machineDeployment, err := c.controlMachineClient.MachineDeployments(machineDeployment.Namespace).Get(machineDeployment.Name, metav1.GetOptions{})
-	if err != nil {
-		klog.Errorf("SafetyController: Failed to GET machineDeployment. Error: %s", err)
-		return err
-	}
-
-	clone := machineDeployment.DeepCopy()
-	newStatus := clone.Status
-	mdcond := NewMachineDeploymentCondition(v1alpha1.MachineDeploymentFrozen, v1alpha1.ConditionTrue, reason, message)
-	SetMachineDeploymentCondition(&newStatus, *mdcond)
-	clone.Status = newStatus
-	machineDeployment, err = c.controlMachineClient.MachineDeployments(clone.Namespace).UpdateStatus(clone)
-	if err != nil {
-		klog.Errorf("SafetyController: MachineDeployment/status UPDATE failed. Error: %s", err)
-		return err
-	}
-
-	clone = machineDeployment.DeepCopy()
-	if clone.Labels == nil {
-		clone.Labels = make(map[string]string)
-	}
-	clone.Labels["freeze"] = "True"
-	_, err = c.controlMachineClient.MachineDeployments(clone.Namespace).Update(clone)
-	if err != nil {
-		klog.Errorf("SafetyController: MachineDeployment UPDATE failed. Error: %s", err)
-		return err
-	}
-
-	klog.V(2).Infof("SafetyController: Froze MachineDeployment %q due to %s", machineDeployment.Name, reason)
-	return nil
-}
-
-// unfreezeMachineDeployment unfreezes the machineDeployment
-func (c *controller) unfreezeMachineDeployment(machineDeployment *v1alpha1.MachineDeployment, reason string) error {
-
-	if machineDeployment == nil {
-		err := fmt.Errorf("SafetyController: Machine Deployment not passed")
-		klog.Errorf(err.Error())
-		return err
-	}
-
-	// Get the latest version of the machineDeployment so that we can avoid conflicts
-	machineDeployment, err := c.controlMachineClient.MachineDeployments(machineDeployment.Namespace).Get(machineDeployment.Name, metav1.GetOptions{})
-	if err != nil {
-		// Some error occued while fetching object from API server
-		klog.Errorf("SafetyController: Failed to GET machineDeployment. Error: %s", err)
-		return err
-	}
-
-	clone := machineDeployment.DeepCopy()
-	newStatus := clone.Status
-	RemoveMachineDeploymentCondition(&newStatus, v1alpha1.MachineDeploymentFrozen)
-	clone.Status = newStatus
-	machineDeployment, err = c.controlMachineClient.MachineDeployments(clone.Namespace).UpdateStatus(clone)
-	if err != nil {
-		klog.Errorf("SafetyController: MachineDeployment/status UPDATE failed. Error: %s", err)
-		return err
-	}
-
-	clone = machineDeployment.DeepCopy()
-	if clone.Annotations == nil {
-		clone.Annotations = make(map[string]string)
-	}
-	delete(clone.Annotations, UnfreezeAnnotation)
-	if clone.Labels == nil {
-		clone.Labels = make(map[string]string)
-	}
-	delete(clone.Labels, "freeze")
-	_, err = c.controlMachineClient.MachineDeployments(clone.Namespace).Update(clone)
-	if err != nil {
-		klog.Errorf("SafetyController: MachineDeployment UPDATE failed. Error: %s", err)
-		return err
-	}
-
-	klog.V(2).Infof("SafetyController: Unfroze MachineDeployment %q due to %s", machineDeployment.Name, reason)
-	return nil
 }

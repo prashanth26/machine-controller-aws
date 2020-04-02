@@ -34,6 +34,8 @@ func (c *controller) Describe(ch chan<- *prometheus.Desc) {
 	ch <- metrics.MachineDeploymentCountDesc
 }
 
+/*
+TODO: Fix metric collection
 // CollectMachineDeploymentMetrics is method to collect machineSet related metrics.
 func (c *controller) CollectMachineDeploymentMetrics(ch chan<- prometheus.Metric) {
 	machineDeploymentList, err := c.machineDeploymentLister.MachineDeployments(c.namespace).List(labels.Everything())
@@ -236,6 +238,7 @@ func (c *controller) CollectMachineSetMetrics(ch chan<- prometheus.Metric) {
 		}
 	}
 }
+*/
 
 // CollectMachines is method to collect Machine related metrics.
 func (c *controller) CollectMachineMetrics(ch chan<- prometheus.Metric) {
@@ -325,7 +328,7 @@ func (c *controller) CollectMachineControllerFrozenStatus(ch chan<- prometheus.M
 // Collect is method required to implement the prometheus.Collect interface.
 func (c *controller) Collect(ch chan<- prometheus.Metric) {
 	c.CollectMachineMetrics(ch)
-	c.CollectMachineSetMetrics(ch)
-	c.CollectMachineDeploymentMetrics(ch)
+	//c.CollectMachineSetMetrics(ch)
+	//c.CollectMachineDeploymentMetrics(ch)
 	c.CollectMachineControllerFrozenStatus(ch)
 }
