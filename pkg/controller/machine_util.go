@@ -29,7 +29,7 @@ import (
 	"k8s.io/klog"
 
 	machineapi "github.com/gardener/machine-controller-manager/pkg/apis/machine"
-	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -45,13 +45,13 @@ var (
 
 // TODO: use client library instead when it starts to support update retries
 //       see https://github.com/kubernetes/kubernetes/issues/21479
-type updateMachineFunc func(machine *v1alpha1.Machine) error
+type updateMachineFunc func(machine *v1alpha2.Machine) error
 
 /*
 // UpdateMachineWithRetries updates a machine with given applyUpdate function. Note that machine not found error is ignored.
 // The returned bool value can be used to tell if the machine is actually updated.
-func UpdateMachineWithRetries(machineClient v1alpha1client.MachineInterface, machineLister v1alpha1listers.MachineLister, namespace, name string, applyUpdate updateMachineFunc) (*v1alpha1.Machine, error) {
-	var machine *v1alpha1.Machine
+func UpdateMachineWithRetries(machineClient v1alpha2client.MachineInterface, machineLister v1alpha2listers.MachineLister, namespace, name string, applyUpdate updateMachineFunc) (*v1alpha2.Machine, error) {
+	var machine *v1alpha2.Machine
 
 	retryErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		var err error
@@ -79,7 +79,7 @@ func UpdateMachineWithRetries(machineClient v1alpha1client.MachineInterface, mac
 }
 */
 
-func (c *controller) validateMachineClass(classSpec *v1alpha1.ClassSpec) (interface{}, *v1.Secret, error) {
+func (c *controller) validateMachineClass(classSpec *v1alpha2.ClassSpec) (interface{}, *v1.Secret, error) {
 
 	var MachineClass interface{}
 	var secretRef *v1.Secret
@@ -139,10 +139,10 @@ func nodeConditionsHaveChanged(machineConditions []v1.NodeCondition, nodeConditi
 // syncMachineNodeTemplate syncs nodeTemplates between machine and corresponding node-object.
 // It ensures, that any nodeTemplate element available on Machine should be available on node-object.
 // Although there could be more elements already available on node-object which will not be touched.
-func (c *controller) syncMachineNodeTemplates(machine *v1alpha1.Machine) error {
+func (c *controller) syncMachineNodeTemplates(machine *v1alpha2.Machine) error {
 	var (
 		initializedNodeAnnotation   = false
-		lastAppliedALT              v1alpha1.NodeTemplateSpec
+		lastAppliedALT              v1alpha2.NodeTemplateSpec
 		currentlyAppliedALTJSONByte []byte
 	)
 
@@ -205,7 +205,7 @@ func (c *controller) syncMachineNodeTemplates(machine *v1alpha1.Machine) error {
 // SyncMachineAnnotations syncs the annotations of the machine with node-objects.
 // It returns true if update is needed else false.
 func SyncMachineAnnotations(
-	machine *v1alpha1.Machine,
+	machine *v1alpha2.Machine,
 	node *v1.Node,
 	lastAppliedAnnotations map[string]string,
 ) bool {
@@ -244,7 +244,7 @@ func SyncMachineAnnotations(
 // SyncMachineLabels syncs the labels of the machine with node-objects.
 // It returns true if update is needed else false.
 func SyncMachineLabels(
-	machine *v1alpha1.Machine,
+	machine *v1alpha2.Machine,
 	node *v1.Node,
 	lastAppliedLabels map[string]string,
 ) bool {
@@ -290,7 +290,7 @@ type taintKeyEffect struct {
 // SyncMachineTaints syncs the taints of the machine with node-objects.
 // It returns true if update is needed else false.
 func SyncMachineTaints(
-	machine *v1alpha1.Machine,
+	machine *v1alpha2.Machine,
 	node *v1.Node,
 	lastAppliedTaints []v1.Taint,
 ) bool {

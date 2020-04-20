@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	v1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	v1alpha2 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -75,6 +76,18 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Machine().V1alpha1().OpenStackMachineClasses().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("packetmachineclasses"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Machine().V1alpha1().PacketMachineClasses().Informer()}, nil
+
+		// Group=machine.sapcloud.io, Version=v1alpha2
+	case v1alpha2.SchemeGroupVersion.WithResource("machines"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Machine().V1alpha2().Machines().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("machineclasses"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Machine().V1alpha2().MachineClasses().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("machinedeployments"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Machine().V1alpha2().MachineDeployments().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("machinesets"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Machine().V1alpha2().MachineSets().Informer()}, nil
+	case v1alpha2.SchemeGroupVersion.WithResource("machinetemplates"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Machine().V1alpha2().MachineTemplates().Informer()}, nil
 
 	}
 

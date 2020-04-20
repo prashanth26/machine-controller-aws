@@ -18,8 +18,8 @@ package controller
 import (
 	"encoding/json"
 
-	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
-	machinev1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
+	machinev1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -451,7 +451,7 @@ var _ = Describe("machine_util", func() {
 				testMachine := data.action.machine
 				expectedNode := data.expect.node
 
-				var lastAppliedALT v1alpha1.NodeTemplateSpec
+				var lastAppliedALT v1alpha2.NodeTemplateSpec
 				lastAppliedALTJSONString, exists := testNode.Annotations[LastAppliedALTAnnotation]
 				if exists {
 					err := json.Unmarshal([]byte(lastAppliedALTJSONString), &lastAppliedALT)
@@ -884,7 +884,7 @@ var _ = Describe("machine_util", func() {
 				testMachine := data.action.machine
 				expectedNode := data.expect.node
 
-				var lastAppliedALT v1alpha1.NodeTemplateSpec
+				var lastAppliedALT v1alpha2.NodeTemplateSpec
 				lastAppliedALTJSONString, exists := testNode.Annotations[LastAppliedALTAnnotation]
 				if exists {
 					err := json.Unmarshal([]byte(lastAppliedALTJSONString), &lastAppliedALT)
@@ -1302,7 +1302,7 @@ var _ = Describe("machine_util", func() {
 				testMachine := data.action.machine
 				expectedNode := data.expect.node
 
-				var lastAppliedALT v1alpha1.NodeTemplateSpec
+				var lastAppliedALT v1alpha2.NodeTemplateSpec
 				lastAppliedALTJSONString, exists := testNode.Annotations[LastAppliedALTAnnotation]
 				if exists {
 					err := json.Unmarshal([]byte(lastAppliedALTJSONString), &lastAppliedALT)

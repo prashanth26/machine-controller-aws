@@ -18,7 +18,7 @@ limitations under the License.
 package awsdriver
 
 import (
-	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -30,7 +30,7 @@ func NewDriver(machineID string, secretRef *corev1.Secret, classKind string, mac
 
 	case "AWSMachineClass":
 		return &AWSDriver{
-			AWSMachineClass: machineClass.(*v1alpha1.AWSMachineClass),
+			AWSMachineClass: machineClass.(*v1alpha2.AWSMachineClass),
 			CloudConfig:     secretRef,
 			UserData:        string(secretRef.Data["userData"]),
 			MachineID:       machineID,

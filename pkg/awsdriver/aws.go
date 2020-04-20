@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"strings"
 
-	v1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	v1alpha2 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
 	"github.com/gardener/machine-controller-manager/pkg/metrics"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"github.com/prometheus/client_golang/prometheus"
@@ -39,7 +39,7 @@ import (
 
 // AWSDriver is the driver struct for holding AWS machine information
 type AWSDriver struct {
-	AWSMachineClass *v1alpha1.AWSMachineClass
+	AWSMachineClass *v1alpha2.AWSMachineClass
 	CloudConfig     *corev1.Secret
 	UserData        string
 	MachineID       string
@@ -168,7 +168,7 @@ func (d *AWSDriver) generateTags(tags map[string]string, resourceType string) (*
 	return tagInstance, nil
 }
 
-func (d *AWSDriver) generateBlockDevices(blockDevices []v1alpha1.AWSBlockDeviceMappingSpec, rootDeviceName *string) ([]*ec2.BlockDeviceMapping, error) {
+func (d *AWSDriver) generateBlockDevices(blockDevices []v1alpha2.AWSBlockDeviceMappingSpec, rootDeviceName *string) ([]*ec2.BlockDeviceMapping, error) {
 
 	var blkDeviceMappings []*ec2.BlockDeviceMapping
 	// if blockDevices is empty, AWS will automatically create a root partition
@@ -436,8 +436,8 @@ func (d *AWSDriver) createSVC() (*ec2.EC2, error) {
 			Region: aws.String(d.AWSMachineClass.Spec.Region),
 		}
 
-		accessKeyID     = strings.TrimSpace(string(d.CloudConfig.Data[v1alpha1.AWSAccessKeyID]))
-		secretAccessKey = strings.TrimSpace(string(d.CloudConfig.Data[v1alpha1.AWSSecretAccessKey]))
+		accessKeyID     = strings.TrimSpace(string(d.CloudConfig.Data[v1alpha2.AWSAccessKeyID]))
+		secretAccessKey = strings.TrimSpace(string(d.CloudConfig.Data[v1alpha2.AWSSecretAccessKey]))
 	)
 
 	if accessKeyID != "" && secretAccessKey != "" {

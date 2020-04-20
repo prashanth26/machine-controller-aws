@@ -964,9 +964,9 @@ func Convert_machine_AWSMachineClassSpec_To_v1alpha1_AWSMachineClassSpec(in *mac
 }
 
 func autoConvert_v1alpha1_AWSNetworkInterfaceSpec_To_machine_AWSNetworkInterfaceSpec(in *AWSNetworkInterfaceSpec, out *machine.AWSNetworkInterfaceSpec, s conversion.Scope) error {
-	out.AssociatePublicIPAddress = in.AssociatePublicIPAddress
-	out.DeleteOnTermination = in.DeleteOnTermination
-	out.Description = in.Description
+	out.AssociatePublicIPAddress = (*bool)(unsafe.Pointer(in.AssociatePublicIPAddress))
+	out.DeleteOnTermination = (*bool)(unsafe.Pointer(in.DeleteOnTermination))
+	out.Description = (*string)(unsafe.Pointer(in.Description))
 	out.SecurityGroupIDs = *(*[]string)(unsafe.Pointer(&in.SecurityGroupIDs))
 	out.SubnetID = in.SubnetID
 	return nil
@@ -978,9 +978,9 @@ func Convert_v1alpha1_AWSNetworkInterfaceSpec_To_machine_AWSNetworkInterfaceSpec
 }
 
 func autoConvert_machine_AWSNetworkInterfaceSpec_To_v1alpha1_AWSNetworkInterfaceSpec(in *machine.AWSNetworkInterfaceSpec, out *AWSNetworkInterfaceSpec, s conversion.Scope) error {
-	out.AssociatePublicIPAddress = in.AssociatePublicIPAddress
-	out.DeleteOnTermination = in.DeleteOnTermination
-	out.Description = in.Description
+	out.AssociatePublicIPAddress = (*bool)(unsafe.Pointer(in.AssociatePublicIPAddress))
+	out.DeleteOnTermination = (*bool)(unsafe.Pointer(in.DeleteOnTermination))
+	out.Description = (*string)(unsafe.Pointer(in.Description))
 	out.SecurityGroupIDs = *(*[]string)(unsafe.Pointer(&in.SecurityGroupIDs))
 	out.SubnetID = in.SubnetID
 	return nil
@@ -1638,10 +1638,11 @@ func Convert_machine_CurrentStatus_To_v1alpha1_CurrentStatus(in *machine.Current
 }
 
 func autoConvert_v1alpha1_GCPDisk_To_machine_GCPDisk(in *GCPDisk, out *machine.GCPDisk, s conversion.Scope) error {
-	out.AutoDelete = in.AutoDelete
+	out.AutoDelete = (*bool)(unsafe.Pointer(in.AutoDelete))
 	out.Boot = in.Boot
 	out.SizeGb = in.SizeGb
 	out.Type = in.Type
+	out.Interface = in.Interface
 	out.Image = in.Image
 	out.Labels = *(*map[string]string)(unsafe.Pointer(&in.Labels))
 	return nil
@@ -1653,10 +1654,11 @@ func Convert_v1alpha1_GCPDisk_To_machine_GCPDisk(in *GCPDisk, out *machine.GCPDi
 }
 
 func autoConvert_machine_GCPDisk_To_v1alpha1_GCPDisk(in *machine.GCPDisk, out *GCPDisk, s conversion.Scope) error {
-	out.AutoDelete = in.AutoDelete
+	out.AutoDelete = (*bool)(unsafe.Pointer(in.AutoDelete))
 	out.Boot = in.Boot
 	out.SizeGb = in.SizeGb
 	out.Type = in.Type
+	out.Interface = in.Interface
 	out.Image = in.Image
 	out.Labels = *(*map[string]string)(unsafe.Pointer(&in.Labels))
 	return nil
@@ -2396,6 +2398,7 @@ func autoConvert_v1alpha1_MachineStatus_To_machine_MachineStatus(in *MachineStat
 	if err := Convert_v1alpha1_CurrentStatus_To_machine_CurrentStatus(&in.CurrentStatus, &out.CurrentStatus, s); err != nil {
 		return err
 	}
+	out.LastKnownState = in.LastKnownState
 	return nil
 }
 
@@ -2413,6 +2416,7 @@ func autoConvert_machine_MachineStatus_To_v1alpha1_MachineStatus(in *machine.Mac
 	if err := Convert_machine_CurrentStatus_To_v1alpha1_CurrentStatus(&in.CurrentStatus, &out.CurrentStatus, s); err != nil {
 		return err
 	}
+	out.LastKnownState = in.LastKnownState
 	return nil
 }
 

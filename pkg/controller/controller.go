@@ -25,10 +25,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	machine_internal "github.com/gardener/machine-controller-manager/pkg/apis/machine"
-	machine_v1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
-	machineapi "github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/typed/machine/v1alpha1"
-	machineinformers "github.com/gardener/machine-controller-manager/pkg/client/informers/externalversions/machine/v1alpha1"
-	machinelisters "github.com/gardener/machine-controller-manager/pkg/client/listers/machine/v1alpha1"
+	machine_v1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
+	machineapi "github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/typed/machine/v1alpha2"
+	machineinformers "github.com/gardener/machine-controller-manager/pkg/client/informers/externalversions/machine/v1alpha2"
+	machinelisters "github.com/gardener/machine-controller-manager/pkg/client/listers/machine/v1alpha2"
 	"github.com/prometheus/client_golang/prometheus"
 	v1 "k8s.io/api/core/v1"
 	coreinformers "k8s.io/client-go/informers/core/v1"
@@ -63,7 +63,7 @@ const (
 // NewController returns a new Node controller.
 func NewController(
 	namespace string,
-	controlMachineClient machineapi.MachineV1alpha1Interface,
+	controlMachineClient machineapi.MachineV1alpha2Interface,
 	controlCoreClient kubernetes.Interface,
 	targetCoreClient kubernetes.Interface,
 	pvcInformer coreinformers.PersistentVolumeClaimInformer,
@@ -194,7 +194,7 @@ type controller struct {
 	namespace      string
 	nodeConditions string
 
-	controlMachineClient machineapi.MachineV1alpha1Interface
+	controlMachineClient machineapi.MachineV1alpha2Interface
 	controlCoreClient    kubernetes.Interface
 	targetCoreClient     kubernetes.Interface
 

@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	machinev1alpha1 "github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/typed/machine/v1alpha1"
+	machinev1alpha2 "github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/typed/machine/v1alpha2"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -30,6 +31,7 @@ import (
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
 	MachineV1alpha1() machinev1alpha1.MachineV1alpha1Interface
+	MachineV1alpha2() machinev1alpha2.MachineV1alpha2Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
@@ -37,11 +39,17 @@ type Interface interface {
 type Clientset struct {
 	*discovery.DiscoveryClient
 	machineV1alpha1 *machinev1alpha1.MachineV1alpha1Client
+	machineV1alpha2 *machinev1alpha2.MachineV1alpha2Client
 }
 
 // MachineV1alpha1 retrieves the MachineV1alpha1Client
 func (c *Clientset) MachineV1alpha1() machinev1alpha1.MachineV1alpha1Interface {
 	return c.machineV1alpha1
+}
+
+// MachineV1alpha2 retrieves the MachineV1alpha2Client
+func (c *Clientset) MachineV1alpha2() machinev1alpha2.MachineV1alpha2Interface {
+	return c.machineV1alpha2
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -69,6 +77,10 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	if err != nil {
 		return nil, err
 	}
+	cs.machineV1alpha2, err = machinev1alpha2.NewForConfig(&configShallowCopy)
+	if err != nil {
+		return nil, err
+	}
 
 	cs.DiscoveryClient, err = discovery.NewDiscoveryClientForConfig(&configShallowCopy)
 	if err != nil {
@@ -82,6 +94,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
 	cs.machineV1alpha1 = machinev1alpha1.NewForConfigOrDie(c)
+	cs.machineV1alpha2 = machinev1alpha2.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -91,6 +104,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
 	cs.machineV1alpha1 = machinev1alpha1.New(c)
+	cs.machineV1alpha2 = machinev1alpha2.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

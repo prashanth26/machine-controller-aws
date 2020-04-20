@@ -64,7 +64,7 @@ const (
 	controllerManagerAgentName = "machine-controller-manager"
 )
 
-var awsGVR = schema.GroupVersionResource{Group: "machine.sapcloud.io", Version: "v1alpha1", Resource: "awsmachineclasses"}
+var awsGVR = schema.GroupVersionResource{Group: "machine.sapcloud.io", Version: "v1alpha2", Resource: "awsmachineclasses"}
 
 // Run runs the MCMServer.  This should never exit.
 func Run(s *options.MCMServer) error {
@@ -206,7 +206,7 @@ func StartControllers(s *options.MCMServer,
 		return err
 	}
 
-	controlMachineClient := controlMachineClientBuilder.ClientOrDie(controllerManagerAgentName).MachineV1alpha1()
+	controlMachineClient := controlMachineClientBuilder.ClientOrDie(controllerManagerAgentName).MachineV1alpha2()
 
 	controlCoreKubeconfig = rest.AddUserAgent(controlCoreKubeconfig, controllerManagerAgentName)
 	controlCoreClient, err := kubernetes.NewForConfig(controlCoreKubeconfig)
@@ -242,8 +242,8 @@ func StartControllers(s *options.MCMServer,
 			s.MinResyncPeriod.Duration,
 		)
 
-		// All shared informers are v1alpha1 API level
-		machineSharedInformers := controlMachineInformerFactory.Machine().V1alpha1()
+		// All shared informers are v1alpha2 API level
+		machineSharedInformers := controlMachineInformerFactory.Machine().V1alpha2()
 
 		klog.V(5).Infof("Creating controllers...")
 		machineController, err := machinecontroller.NewController(

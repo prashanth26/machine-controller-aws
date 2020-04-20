@@ -20,7 +20,7 @@ package controller
 import (
 	"time"
 
-	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -160,7 +160,7 @@ func (c *controller) enqueueSecretAfter(obj interface{}, after time.Duration) {
 }
 
 func (c *controller) openStackMachineClassToSecretAdd(obj interface{}) {
-	machineClass, ok := obj.(*v1alpha1.OpenStackMachineClass)
+	machineClass, ok := obj.(*v1alpha2.OpenStackMachineClass)
 	if machineClass == nil || !ok {
 		return
 	}
@@ -168,11 +168,11 @@ func (c *controller) openStackMachineClassToSecretAdd(obj interface{}) {
 }
 
 func (c *controller) openStackMachineClassToSecretUpdate(oldObj interface{}, newObj interface{}) {
-	oldMachineClass, ok := oldObj.(*v1alpha1.OpenStackMachineClass)
+	oldMachineClass, ok := oldObj.(*v1alpha2.OpenStackMachineClass)
 	if oldMachineClass == nil || !ok {
 		return
 	}
-	newMachineClass, ok := newObj.(*v1alpha1.OpenStackMachineClass)
+	newMachineClass, ok := newObj.(*v1alpha2.OpenStackMachineClass)
 	if newMachineClass == nil || !ok {
 		return
 	}
@@ -189,7 +189,7 @@ func (c *controller) openStackMachineClassToSecretDelete(obj interface{}) {
 }
 
 func (c *controller) gcpMachineClassToSecretAdd(obj interface{}) {
-	machineClass, ok := obj.(*v1alpha1.GCPMachineClass)
+	machineClass, ok := obj.(*v1alpha2.GCPMachineClass)
 	if machineClass == nil || !ok {
 		return
 	}
@@ -197,11 +197,11 @@ func (c *controller) gcpMachineClassToSecretAdd(obj interface{}) {
 }
 
 func (c *controller) gcpMachineClassToSecretUpdate(oldObj interface{}, newObj interface{}) {
-	oldMachineClass, ok := oldObj.(*v1alpha1.GCPMachineClass)
+	oldMachineClass, ok := oldObj.(*v1alpha2.GCPMachineClass)
 	if oldMachineClass == nil || !ok {
 		return
 	}
-	newMachineClass, ok := newObj.(*v1alpha1.GCPMachineClass)
+	newMachineClass, ok := newObj.(*v1alpha2.GCPMachineClass)
 	if newMachineClass == nil || !ok {
 		return
 	}
@@ -218,7 +218,7 @@ func (c *controller) gcpMachineClassToSecretDelete(obj interface{}) {
 }
 
 func (c *controller) azureMachineClassToSecretAdd(obj interface{}) {
-	machineClass, ok := obj.(*v1alpha1.AzureMachineClass)
+	machineClass, ok := obj.(*v1alpha2.AzureMachineClass)
 	if machineClass == nil || !ok {
 		return
 	}
@@ -226,11 +226,11 @@ func (c *controller) azureMachineClassToSecretAdd(obj interface{}) {
 }
 
 func (c *controller) azureMachineClassToSecretUpdate(oldObj interface{}, newObj interface{}) {
-	oldMachineClass, ok := oldObj.(*v1alpha1.AzureMachineClass)
+	oldMachineClass, ok := oldObj.(*v1alpha2.AzureMachineClass)
 	if oldMachineClass == nil || !ok {
 		return
 	}
-	newMachineClass, ok := newObj.(*v1alpha1.AzureMachineClass)
+	newMachineClass, ok := newObj.(*v1alpha2.AzureMachineClass)
 	if newMachineClass == nil || !ok {
 		return
 	}
@@ -247,7 +247,7 @@ func (c *controller) azureMachineClassToSecretDelete(obj interface{}) {
 }
 
 func (c *controller) alicloudMachineClassToSecretAdd(obj interface{}) {
-	machineClass, ok := obj.(*v1alpha1.AlicloudMachineClass)
+	machineClass, ok := obj.(*v1alpha2.AlicloudMachineClass)
 	if machineClass == nil || !ok {
 		return
 	}
@@ -255,11 +255,11 @@ func (c *controller) alicloudMachineClassToSecretAdd(obj interface{}) {
 }
 
 func (c *controller) alicloudMachineClassToSecretUpdate(oldObj interface{}, newObj interface{}) {
-	oldMachineClass, ok := oldObj.(*v1alpha1.AlicloudMachineClass)
+	oldMachineClass, ok := oldObj.(*v1alpha2.AlicloudMachineClass)
 	if oldMachineClass == nil || !ok {
 		return
 	}
-	newMachineClass, ok := newObj.(*v1alpha1.AlicloudMachineClass)
+	newMachineClass, ok := newObj.(*v1alpha2.AlicloudMachineClass)
 	if newMachineClass == nil || !ok {
 		return
 	}
@@ -276,7 +276,7 @@ func (c *controller) alicloudMachineClassToSecretDelete(obj interface{}) {
 }
 
 func (c *controller) awsMachineClassToSecretAdd(obj interface{}) {
-	machineClass, ok := obj.(*v1alpha1.AWSMachineClass)
+	machineClass, ok := obj.(*v1alpha2.AWSMachineClass)
 	if machineClass == nil || !ok {
 		return
 	}
@@ -284,11 +284,11 @@ func (c *controller) awsMachineClassToSecretAdd(obj interface{}) {
 }
 
 func (c *controller) awsMachineClassToSecretUpdate(oldObj interface{}, newObj interface{}) {
-	oldMachineClass, ok := oldObj.(*v1alpha1.AWSMachineClass)
+	oldMachineClass, ok := oldObj.(*v1alpha2.AWSMachineClass)
 	if oldMachineClass == nil || !ok {
 		return
 	}
-	newMachineClass, ok := newObj.(*v1alpha1.AWSMachineClass)
+	newMachineClass, ok := newObj.(*v1alpha2.AWSMachineClass)
 	if newMachineClass == nil || !ok {
 		return
 	}
@@ -305,7 +305,7 @@ func (c *controller) awsMachineClassToSecretDelete(obj interface{}) {
 }
 
 func (c *controller) packetMachineClassToSecretAdd(obj interface{}) {
-	machineClass, ok := obj.(*v1alpha1.PacketMachineClass)
+	machineClass, ok := obj.(*v1alpha2.PacketMachineClass)
 	if machineClass == nil || !ok {
 		return
 	}
@@ -313,11 +313,11 @@ func (c *controller) packetMachineClassToSecretAdd(obj interface{}) {
 }
 
 func (c *controller) packetMachineClassToSecretUpdate(oldObj interface{}, newObj interface{}) {
-	oldMachineClass, ok := oldObj.(*v1alpha1.PacketMachineClass)
+	oldMachineClass, ok := oldObj.(*v1alpha2.PacketMachineClass)
 	if oldMachineClass == nil || !ok {
 		return
 	}
-	newMachineClass, ok := newObj.(*v1alpha1.PacketMachineClass)
+	newMachineClass, ok := newObj.(*v1alpha2.PacketMachineClass)
 	if newMachineClass == nil || !ok {
 		return
 	}

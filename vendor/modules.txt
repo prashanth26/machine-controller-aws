@@ -42,20 +42,25 @@ github.com/beorn7/perks/quantile
 github.com/davecgh/go-spew/spew
 # github.com/evanphx/json-patch v4.2.0+incompatible
 github.com/evanphx/json-patch
-# github.com/gardener/machine-controller-manager v0.27.0 => github.com/prashanth26/machine-controller-manager v0.0.0-20200409100037-4ca95fb0b734
+# github.com/gardener/machine-controller-manager v0.27.0 => github.com/prashanth26/machine-controller-manager v0.0.0-20200419124247-989735cf9683
 github.com/gardener/machine-controller-manager/pkg/apis/machine
 github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1
+github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2
 github.com/gardener/machine-controller-manager/pkg/apis/machine/validation
 github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned
 github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/fake
 github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/scheme
 github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/typed/machine/v1alpha1
 github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/typed/machine/v1alpha1/fake
+github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/typed/machine/v1alpha2
+github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/typed/machine/v1alpha2/fake
 github.com/gardener/machine-controller-manager/pkg/client/informers/externalversions
 github.com/gardener/machine-controller-manager/pkg/client/informers/externalversions/internalinterfaces
 github.com/gardener/machine-controller-manager/pkg/client/informers/externalversions/machine
 github.com/gardener/machine-controller-manager/pkg/client/informers/externalversions/machine/v1alpha1
+github.com/gardener/machine-controller-manager/pkg/client/informers/externalversions/machine/v1alpha2
 github.com/gardener/machine-controller-manager/pkg/client/listers/machine/v1alpha1
+github.com/gardener/machine-controller-manager/pkg/client/listers/machine/v1alpha2
 github.com/gardener/machine-controller-manager/pkg/fakeclient
 github.com/gardener/machine-controller-manager/pkg/features
 github.com/gardener/machine-controller-manager/pkg/handlers

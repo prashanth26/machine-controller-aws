@@ -35,8 +35,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/validation"
 
-	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
-	machineapi "github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/typed/machine/v1alpha1"
+	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
+	machineapi "github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/typed/machine/v1alpha2"
 	hashutil "github.com/gardener/machine-controller-manager/pkg/util/hash"
 	taintutils "github.com/gardener/machine-controller-manager/pkg/util/taints"
 	v1 "k8s.io/api/core/v1"
@@ -55,7 +55,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	clientretry "k8s.io/client-go/util/retry"
 
-	fakemachineapi "github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/typed/machine/v1alpha1/fake"
+	fakemachineapi "github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/typed/machine/v1alpha2/fake"
 	"k8s.io/klog"
 )
 
@@ -417,7 +417,7 @@ type MachineSetControlInterface interface {
 
 // RealMachineSetControl is the default implementation of RSControllerInterface.
 type RealMachineSetControl struct {
-	controlMachineClient machineapi.MachineV1alpha1Interface
+	controlMachineClient machineapi.MachineV1alpha2Interface
 	Recorder             record.EventRecorder
 }
 
@@ -473,7 +473,7 @@ func validateControllerRef(controllerRef *metav1.OwnerReference) error {
 
 // RealMachineControl is the default implementation of machineControlInterface.
 type RealMachineControl struct {
-	controlMachineClient machineapi.MachineV1alpha1Interface
+	controlMachineClient machineapi.MachineV1alpha2Interface
 	Recorder             record.EventRecorder
 }
 
@@ -483,16 +483,16 @@ var _ MachineControlInterface = &RealMachineControl{}
 // MachineControlInterface is the interface used by the machine-set controller to interact with the machine controller
 type MachineControlInterface interface {
 	// Createmachines creates new machines according to the spec.
-	CreateMachines(namespace string, template *v1alpha1.MachineTemplateSpec, object runtime.Object) error
+	CreateMachines(namespace string, template *v1alpha2.MachineTemplateSpec, object runtime.Object) error
 	// CreatemachinesWithControllerRef creates new machines according to the spec, and sets object as the machine's controller.
-	CreateMachinesWithControllerRef(namespace string, template *v1alpha1.MachineTemplateSpec, object runtime.Object, controllerRef *metav1.OwnerReference) error
+	CreateMachinesWithControllerRef(namespace string, template *v1alpha2.MachineTemplateSpec, object runtime.Object, controllerRef *metav1.OwnerReference) error
 	// Deletemachine deletes the machine identified by machineID.
 	DeleteMachine(namespace string, machineID string, object runtime.Object) error
 	// Patchmachine patches the machine.
 	PatchMachine(namespace string, name string, data []byte) error
 }
 
-func getMachinesLabelSet(template *v1alpha1.MachineTemplateSpec) labels.Set {
+func getMachinesLabelSet(template *v1alpha2.MachineTemplateSpec) labels.Set {
 	desiredLabels := make(labels.Set)
 	for k, v := range template.Labels {
 		desiredLabels[k] = v
@@ -500,13 +500,13 @@ func getMachinesLabelSet(template *v1alpha1.MachineTemplateSpec) labels.Set {
 	return desiredLabels
 }
 
-func getMachinesFinalizers(template *v1alpha1.MachineTemplateSpec) []string {
+func getMachinesFinalizers(template *v1alpha2.MachineTemplateSpec) []string {
 	desiredFinalizers := make([]string, len(template.Finalizers))
 	copy(desiredFinalizers, template.Finalizers)
 	return desiredFinalizers
 }
 
-func getMachinesAnnotationSet(template *v1alpha1.MachineTemplateSpec, object runtime.Object) labels.Set {
+func getMachinesAnnotationSet(template *v1alpha2.MachineTemplateSpec, object runtime.Object) labels.Set {
 	desiredAnnotations := make(labels.Set)
 	for k, v := range template.Annotations {
 		desiredAnnotations[k] = v
@@ -524,7 +524,7 @@ func getMachinesPrefix(controllerName string) string {
 }
 
 // CreateMachinesWithControllerRef creates a machine with controller reference
-func (r RealMachineControl) CreateMachinesWithControllerRef(namespace string, template *v1alpha1.MachineTemplateSpec, controllerObject runtime.Object, controllerRef *metav1.OwnerReference) error {
+func (r RealMachineControl) CreateMachinesWithControllerRef(namespace string, template *v1alpha2.MachineTemplateSpec, controllerObject runtime.Object, controllerRef *metav1.OwnerReference) error {
 	if err := validateControllerRef(controllerRef); err != nil {
 		return err
 	}
@@ -532,7 +532,7 @@ func (r RealMachineControl) CreateMachinesWithControllerRef(namespace string, te
 }
 
 // GetMachineFromTemplate passes the machine template spec to return the machine object
-func GetMachineFromTemplate(template *v1alpha1.MachineTemplateSpec, parentObject runtime.Object, controllerRef *metav1.OwnerReference) (*v1alpha1.Machine, error) {
+func GetMachineFromTemplate(template *v1alpha2.MachineTemplateSpec, parentObject runtime.Object, controllerRef *metav1.OwnerReference) (*v1alpha2.Machine, error) {
 
 	//klog.Info("Template details \n", template.Spec.Class)
 	desiredLabels := getMachinesLabelSet(template)
@@ -546,14 +546,14 @@ func GetMachineFromTemplate(template *v1alpha1.MachineTemplateSpec, parentObject
 	}
 	prefix := getMachinesPrefix(accessor.GetName())
 	//klog.Info("2")
-	machine := &v1alpha1.Machine{
+	machine := &v1alpha2.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:       desiredLabels,
 			Annotations:  desiredAnnotations,
 			GenerateName: prefix,
 			Finalizers:   desiredFinalizers,
 		},
-		Spec: v1alpha1.MachineSpec{
+		Spec: v1alpha2.MachineSpec{
 			Class: template.Spec.Class,
 		},
 	}
@@ -566,11 +566,11 @@ func GetMachineFromTemplate(template *v1alpha1.MachineTemplateSpec, parentObject
 }
 
 // CreateMachines initiates a create machine for a RealMachineControl
-func (r RealMachineControl) CreateMachines(namespace string, template *v1alpha1.MachineTemplateSpec, object runtime.Object) error {
+func (r RealMachineControl) CreateMachines(namespace string, template *v1alpha2.MachineTemplateSpec, object runtime.Object) error {
 	return r.createMachines(namespace, template, object, nil)
 }
 
-func (r RealMachineControl) createMachines(namespace string, template *v1alpha1.MachineTemplateSpec, object runtime.Object, controllerRef *metav1.OwnerReference) error {
+func (r RealMachineControl) createMachines(namespace string, template *v1alpha2.MachineTemplateSpec, object runtime.Object, controllerRef *metav1.OwnerReference) error {
 	machine, err := GetMachineFromTemplate(template, object, controllerRef)
 	if err != nil {
 		return err
@@ -580,7 +580,7 @@ func (r RealMachineControl) createMachines(namespace string, template *v1alpha1.
 		return fmt.Errorf("unable to create machines, no labels")
 	}
 
-	var newMachine *v1alpha1.Machine
+	var newMachine *v1alpha2.Machine
 	if newMachine, err = r.controlMachineClient.Machines(namespace).Create(machine); err != nil {
 		klog.Error(err)
 		r.Recorder.Eventf(object, v1.EventTypeWarning, FailedCreateMachineReason, "Error creating: %v", err)
@@ -627,16 +627,16 @@ func (r RealMachineControl) DeleteMachine(namespace string, machineID string, ob
 
 // FakeMachineControl is the fake implementation of machineControlInterface.
 type FakeMachineControl struct {
-	controlMachineClient *fakemachineapi.FakeMachineV1alpha1
+	controlMachineClient *fakemachineapi.FakeMachineV1alpha2
 	Recorder             record.EventRecorder
 }
 
 // CreateMachines initiates a create machine for a RealMachineControl
-func (r FakeMachineControl) CreateMachines(namespace string, template *v1alpha1.MachineTemplateSpec, object runtime.Object) error {
+func (r FakeMachineControl) CreateMachines(namespace string, template *v1alpha2.MachineTemplateSpec, object runtime.Object) error {
 	return r.createMachines(namespace, template, object, nil)
 }
 
-func (r FakeMachineControl) createMachines(namespace string, template *v1alpha1.MachineTemplateSpec, object runtime.Object, controllerRef *metav1.OwnerReference) error {
+func (r FakeMachineControl) createMachines(namespace string, template *v1alpha2.MachineTemplateSpec, object runtime.Object, controllerRef *metav1.OwnerReference) error {
 	machine, err := GetFakeMachineFromTemplate(template, object, controllerRef)
 	if err != nil {
 		return err
@@ -646,7 +646,7 @@ func (r FakeMachineControl) createMachines(namespace string, template *v1alpha1.
 		return fmt.Errorf("unable to create machines, no labels")
 	}
 
-	var newMachine *v1alpha1.Machine
+	var newMachine *v1alpha2.Machine
 	if newMachine, err = r.controlMachineClient.Machines(namespace).Create(machine); err != nil {
 		klog.Error(err)
 		r.Recorder.Eventf(object, v1.EventTypeWarning, FailedCreateMachineReason, "Error creating: %v", err)
@@ -664,7 +664,7 @@ func (r FakeMachineControl) createMachines(namespace string, template *v1alpha1.
 }
 
 // CreateMachinesWithControllerRef creates a machine with controller reference
-func (r FakeMachineControl) CreateMachinesWithControllerRef(namespace string, template *v1alpha1.MachineTemplateSpec, controllerObject runtime.Object, controllerRef *metav1.OwnerReference) error {
+func (r FakeMachineControl) CreateMachinesWithControllerRef(namespace string, template *v1alpha2.MachineTemplateSpec, controllerObject runtime.Object, controllerRef *metav1.OwnerReference) error {
 	if err := validateControllerRef(controllerRef); err != nil {
 		return err
 	}
@@ -694,7 +694,7 @@ func (r FakeMachineControl) DeleteMachine(namespace string, machineID string, ob
 }
 
 // GetFakeMachineFromTemplate passes the machine template spec to return the machine object
-func GetFakeMachineFromTemplate(template *v1alpha1.MachineTemplateSpec, parentObject runtime.Object, controllerRef *metav1.OwnerReference) (*v1alpha1.Machine, error) {
+func GetFakeMachineFromTemplate(template *v1alpha2.MachineTemplateSpec, parentObject runtime.Object, controllerRef *metav1.OwnerReference) (*v1alpha2.Machine, error) {
 
 	//klog.Info("Template details \n", template.Spec.Class)
 	desiredLabels := getMachinesLabelSet(template)
@@ -709,14 +709,14 @@ func GetFakeMachineFromTemplate(template *v1alpha1.MachineTemplateSpec, parentOb
 	prefix := getMachinesPrefix(accessor.GetName())
 	rand.Seed(time.Now().UnixNano())
 	prefix = prefix + strconv.Itoa(rand.Intn(100000))
-	machine := &v1alpha1.Machine{
+	machine := &v1alpha2.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:      desiredLabels,
 			Annotations: desiredAnnotations,
 			Name:        prefix,
 			Finalizers:  desiredFinalizers,
 		},
-		Spec: v1alpha1.MachineSpec{
+		Spec: v1alpha2.MachineSpec{
 			Class: template.Spec.Class,
 		},
 	}
@@ -731,7 +731,7 @@ func GetFakeMachineFromTemplate(template *v1alpha1.MachineTemplateSpec, parentOb
 // --- //
 
 // ActiveMachines type allows custom sorting of machines so a controller can pick the best ones to delete.
-type ActiveMachines []*v1alpha1.Machine
+type ActiveMachines []*v1alpha2.Machine
 
 func (s ActiveMachines) Len() int      { return len(s) }
 func (s ActiveMachines) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
@@ -762,13 +762,13 @@ func (s ActiveMachines) Less(i, j int) bool {
 	// Map containing machinePhase priority
 	// the lower the priority, the more likely
 	// it is to be deleted
-	m := map[v1alpha1.MachinePhase]int{
-		v1alpha1.MachineTerminating: 0,
-		v1alpha1.MachineFailed:      1,
-		v1alpha1.MachineUnknown:     2,
-		v1alpha1.MachinePending:     3,
-		v1alpha1.MachineAvailable:   4,
-		v1alpha1.MachineRunning:     5,
+	m := map[v1alpha2.MachinePhase]int{
+		v1alpha2.MachineTerminating: 0,
+		v1alpha2.MachineFailed:      1,
+		v1alpha2.MachineUnknown:     2,
+		v1alpha2.MachinePending:     3,
+		v1alpha2.MachineAvailable:   4,
+		v1alpha2.MachineRunning:     5,
 	}
 
 	// Case-1: Initially we try to prioritize machine deletion based on
@@ -797,10 +797,10 @@ func afterOrZero(t1, t2 *metav1.Time) bool {
 }
 
 // IsMachineActive checks if machine was active
-func IsMachineActive(p *v1alpha1.Machine) bool {
-	if p.Status.CurrentStatus.Phase == v1alpha1.MachineFailed {
+func IsMachineActive(p *v1alpha2.Machine) bool {
+	if p.Status.CurrentStatus.Phase == v1alpha2.MachineFailed {
 		return false
-	} else if p.Status.CurrentStatus.Phase == v1alpha1.MachineTerminating {
+	} else if p.Status.CurrentStatus.Phase == v1alpha2.MachineTerminating {
 		return false
 	}
 
@@ -808,8 +808,8 @@ func IsMachineActive(p *v1alpha1.Machine) bool {
 }
 
 // IsMachineFailed checks if machine has failed
-func IsMachineFailed(p *v1alpha1.Machine) bool {
-	if p.Status.CurrentStatus.Phase == v1alpha1.MachineFailed {
+func IsMachineFailed(p *v1alpha2.Machine) bool {
+	if p.Status.CurrentStatus.Phase == v1alpha2.MachineFailed {
 		return true
 	}
 
@@ -818,7 +818,7 @@ func IsMachineFailed(p *v1alpha1.Machine) bool {
 
 // MachineKey is the function used to get the machine name from machine object
 //ToCheck : as machine-namespace does not matter
-func MachineKey(machine *v1alpha1.Machine) string {
+func MachineKey(machine *v1alpha2.Machine) string {
 	return fmt.Sprintf("%v", machine.Name)
 }
 
@@ -836,7 +836,7 @@ func (o ControllersByCreationTimestamp) Less(i, j int) bool {
 
 // MachineSetsByCreationTimestamp sorts a list of MachineSet by creation timestamp, using their names as a tie breaker.
 /****************** For MachineSet **********************/
-type MachineSetsByCreationTimestamp []*v1alpha1.MachineSet
+type MachineSetsByCreationTimestamp []*v1alpha2.MachineSet
 
 func (o MachineSetsByCreationTimestamp) Len() int      { return int(len(o)) }
 func (o MachineSetsByCreationTimestamp) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
@@ -849,7 +849,7 @@ func (o MachineSetsByCreationTimestamp) Less(i, j int) bool {
 
 // MachineSetsBySizeOlder sorts a list of MachineSet by size in descending order, using their creation timestamp or name as a tie breaker.
 // By using the creation timestamp, this sorts from old to new machine sets.
-type MachineSetsBySizeOlder []*v1alpha1.MachineSet
+type MachineSetsBySizeOlder []*v1alpha2.MachineSet
 
 func (o MachineSetsBySizeOlder) Len() int      { return int(len(o)) }
 func (o MachineSetsBySizeOlder) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
@@ -862,7 +862,7 @@ func (o MachineSetsBySizeOlder) Less(i, j int) bool {
 
 // MachineSetsBySizeNewer sorts a list of MachineSet by size in descending order, using their creation timestamp or name as a tie breaker.
 // By using the creation timestamp, this sorts from new to old machine sets.
-type MachineSetsBySizeNewer []*v1alpha1.MachineSet
+type MachineSetsBySizeNewer []*v1alpha2.MachineSet
 
 func (o MachineSetsBySizeNewer) Len() int      { return int(len(o)) }
 func (o MachineSetsBySizeNewer) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
@@ -874,18 +874,18 @@ func (o MachineSetsBySizeNewer) Less(i, j int) bool {
 }
 
 // FilterActiveMachineSets returns machine sets that have (or at least ought to have) machines.
-func FilterActiveMachineSets(machineSets []*v1alpha1.MachineSet) []*v1alpha1.MachineSet {
-	activeFilter := func(is *v1alpha1.MachineSet) bool {
+func FilterActiveMachineSets(machineSets []*v1alpha2.MachineSet) []*v1alpha2.MachineSet {
+	activeFilter := func(is *v1alpha2.MachineSet) bool {
 		return is != nil && (is.Spec.Replicas) > 0
 	}
 	return FilterMachineSets(machineSets, activeFilter)
 }
 
-type filterIS func(is *v1alpha1.MachineSet) bool
+type filterIS func(is *v1alpha2.MachineSet) bool
 
 // FilterMachineSets returns machine sets that are filtered by filterFn (all returned ones should match filterFn).
-func FilterMachineSets(ISes []*v1alpha1.MachineSet, filterFn filterIS) []*v1alpha1.MachineSet {
-	var filtered []*v1alpha1.MachineSet
+func FilterMachineSets(ISes []*v1alpha2.MachineSet, filterFn filterIS) []*v1alpha2.MachineSet {
+	var filtered []*v1alpha2.MachineSet
 	for i := range ISes {
 		if filterFn(ISes[i]) {
 			filtered = append(filtered, ISes[i])
@@ -1048,7 +1048,7 @@ func WaitForCacheSync(controllerName string, stopCh <-chan struct{}, cacheSyncs 
 }
 
 // ComputeHash returns a hash value calculated from machine template and a collisionCount to avoid hash collision
-func ComputeHash(template *v1alpha1.MachineTemplateSpec, collisionCount *int32) uint32 {
+func ComputeHash(template *v1alpha2.MachineTemplateSpec, collisionCount *int32) uint32 {
 	machineTemplateSpecHasher := fnv.New32a()
 	hashutil.DeepHashObject(machineTemplateSpecHasher, *template)
 

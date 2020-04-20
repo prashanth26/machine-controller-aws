@@ -24,10 +24,10 @@ import (
 
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	machineapi "github.com/gardener/machine-controller-manager/pkg/apis/machine"
-	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
-	machinev1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
+	machinev1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/validation"
-	fakemachineapi "github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/typed/machine/v1alpha1/fake"
+	fakemachineapi "github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/typed/machine/v1alpha2/fake"
 	customfake "github.com/gardener/machine-controller-manager/pkg/fakeclient"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -46,7 +46,7 @@ const testNamespace = "test"
 
 var _ = Describe("machine", func() {
 	var (
-		fakeMachineClient *fakemachineapi.FakeMachineV1alpha1
+		fakeMachineClient *fakemachineapi.FakeMachineV1alpha2
 		c                 *controller
 	)
 
@@ -58,7 +58,7 @@ var _ = Describe("machine", func() {
 		)
 
 		BeforeEach(func() {
-			fakeMachineClient = &fakemachineapi.FakeMachineV1alpha1{
+			fakeMachineClient = &fakemachineapi.FakeMachineV1alpha2{
 				Fake: &k8stesting.Fake{},
 			}
 			c = &controller{
@@ -137,7 +137,7 @@ var _ = Describe("machine", func() {
 
 	Describe("#isHealthy", func() {
 		BeforeEach(func() {
-			fakeMachineClient = &fakemachineapi.FakeMachineV1alpha1{
+			fakeMachineClient = &fakemachineapi.FakeMachineV1alpha2{
 				Fake: &k8stesting.Fake{},
 			}
 			c = &controller{
@@ -1165,12 +1165,12 @@ var _ = Describe("machine", func() {
 						Node: "fakeNode-0",
 						LastOperation: machinev1.LastOperation{
 							Description:    "Deleting machine from cloud provider",
-							State:          v1alpha1.MachineStateProcessing,
-							Type:           v1alpha1.MachineOperationDelete,
+							State:          v1alpha2.MachineStateProcessing,
+							Type:           v1alpha2.MachineOperationDelete,
 							LastUpdateTime: metav1.Now(),
 						},
 						CurrentStatus: machinev1.CurrentStatus{
-							Phase:         v1alpha1.MachineTerminating,
+							Phase:         v1alpha2.MachineTerminating,
 							TimeoutActive: false,
 							// Updating last update time to 30 minutes before now
 							LastUpdateTime: metav1.NewTime(time.Now().Add(-30 * time.Minute)),
@@ -1216,12 +1216,12 @@ var _ = Describe("machine", func() {
 						Node: "fakeNode-0",
 						LastOperation: machinev1.LastOperation{
 							Description:    "Drain failed - for random reason",
-							State:          v1alpha1.MachineStateFailed,
-							Type:           v1alpha1.MachineOperationDelete,
+							State:          v1alpha2.MachineStateFailed,
+							Type:           v1alpha2.MachineOperationDelete,
 							LastUpdateTime: metav1.Now(),
 						},
 						CurrentStatus: machinev1.CurrentStatus{
-							Phase:          v1alpha1.MachineTerminating,
+							Phase:          v1alpha2.MachineTerminating,
 							TimeoutActive:  false,
 							LastUpdateTime: metav1.NewTime(time.Now().Add(-2 * time.Minute)),
 						},
@@ -1271,12 +1271,12 @@ var _ = Describe("machine", func() {
 						Node: "fakeNode-0",
 						LastOperation: machinev1.LastOperation{
 							Description:    "Drain failed - for random reason",
-							State:          v1alpha1.MachineStateFailed,
-							Type:           v1alpha1.MachineOperationDelete,
+							State:          v1alpha2.MachineStateFailed,
+							Type:           v1alpha2.MachineOperationDelete,
 							LastUpdateTime: metav1.Now(),
 						},
 						CurrentStatus: machinev1.CurrentStatus{
-							Phase:          v1alpha1.MachineTerminating,
+							Phase:          v1alpha2.MachineTerminating,
 							TimeoutActive:  false,
 							LastUpdateTime: metav1.NewTime(time.Now().Add(-2 * time.Minute)),
 						},

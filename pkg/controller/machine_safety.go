@@ -27,7 +27,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/gardener/machine-controller-aws/pkg/awsdriver"
-	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"k8s.io/klog"
 )
@@ -76,23 +76,23 @@ func (c *controller) reconcileClusterMachineSafetyAPIServer(key string) error {
 				return err
 			}
 			for _, machine := range machines {
-				if machine.Status.CurrentStatus.Phase == v1alpha1.MachineUnknown {
+				if machine.Status.CurrentStatus.Phase == v1alpha2.MachineUnknown {
 					machine, err := c.controlMachineClient.Machines(c.namespace).Get(machine.Name, metav1.GetOptions{})
 					if err != nil {
 						klog.Error("SafetyController: Unable to GET machines. Error:", err)
 						return err
 					}
 
-					machine.Status.CurrentStatus = v1alpha1.CurrentStatus{
-						Phase:          v1alpha1.MachineRunning,
+					machine.Status.CurrentStatus = v1alpha2.CurrentStatus{
+						Phase:          v1alpha2.MachineRunning,
 						TimeoutActive:  false,
 						LastUpdateTime: metav1.Now(),
 					}
-					machine.Status.LastOperation = v1alpha1.LastOperation{
+					machine.Status.LastOperation = v1alpha2.LastOperation{
 						Description:    "Machine Health Timeout was reset due to APIServer being unreachable",
 						LastUpdateTime: metav1.Now(),
-						State:          v1alpha1.MachineStateSuccessful,
-						Type:           v1alpha1.MachineOperationHealthCheck,
+						State:          v1alpha2.MachineStateSuccessful,
+						Type:           v1alpha2.MachineOperationHealthCheck,
 					}
 					_, err = c.controlMachineClient.Machines(c.namespace).UpdateStatus(machine)
 					if err != nil {
@@ -258,7 +258,7 @@ func (c *controller) checkMachineClass(
 
 // deleteMachineToSafety enqueues into machineSafetyQueue when a new machine is deleted
 func (c *controller) deleteMachineToSafety(obj interface{}) {
-	machine := obj.(*v1alpha1.Machine)
+	machine := obj.(*v1alpha2.Machine)
 	c.enqueueMachineSafetyOrphanVMsKey(machine)
 }
 

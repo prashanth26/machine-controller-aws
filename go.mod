@@ -18,7 +18,7 @@ require (
 )
 
 replace (
-	github.com/gardener/machine-controller-manager => github.com/prashanth26/machine-controller-manager v0.0.0-20200409100037-4ca95fb0b734
+	github.com/gardener/machine-controller-manager => github.com/prashanth26/machine-controller-manager v0.0.0-20200419124247-989735cf9683
 	github.com/onsi/ginkgo => github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega => github.com/onsi/gomega v1.5.0
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v0.9.2

@@ -19,7 +19,7 @@ import (
 	"sort"
 	"strconv"
 
-	machinev1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	machinev1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"

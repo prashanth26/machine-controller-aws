@@ -28,7 +28,7 @@ import (
 	"k8s.io/klog"
 
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine"
-	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/validation"
 )
 
@@ -36,7 +36,7 @@ import (
 const AWSMachineClassKind = "AWSMachineClass"
 
 func (c *controller) machineDeploymentToAWSMachineClassDelete(obj interface{}) {
-	machineDeployment, ok := obj.(*v1alpha1.MachineDeployment)
+	machineDeployment, ok := obj.(*v1alpha2.MachineDeployment)
 	if machineDeployment == nil || !ok {
 		return
 	}
@@ -46,7 +46,7 @@ func (c *controller) machineDeploymentToAWSMachineClassDelete(obj interface{}) {
 }
 
 func (c *controller) machineSetToAWSMachineClassDelete(obj interface{}) {
-	machineSet, ok := obj.(*v1alpha1.MachineSet)
+	machineSet, ok := obj.(*v1alpha2.MachineSet)
 	if machineSet == nil || !ok {
 		return
 	}
@@ -56,7 +56,7 @@ func (c *controller) machineSetToAWSMachineClassDelete(obj interface{}) {
 }
 
 func (c *controller) machineToAWSMachineClassDelete(obj interface{}) {
-	machine, ok := obj.(*v1alpha1.Machine)
+	machine, ok := obj.(*v1alpha2.Machine)
 	if machine == nil || !ok {
 		return
 	}
@@ -75,11 +75,11 @@ func (c *controller) awsMachineClassAdd(obj interface{}) {
 }
 
 func (c *controller) awsMachineClassUpdate(oldObj, newObj interface{}) {
-	old, ok := oldObj.(*v1alpha1.AWSMachineClass)
+	old, ok := oldObj.(*v1alpha2.AWSMachineClass)
 	if old == nil || !ok {
 		return
 	}
-	new, ok := newObj.(*v1alpha1.AWSMachineClass)
+	new, ok := newObj.(*v1alpha2.AWSMachineClass)
 	if new == nil || !ok {
 		return
 	}
@@ -108,7 +108,7 @@ func (c *controller) reconcileClusterAWSMachineClassKey(key string) error {
 	return c.reconcileClusterAWSMachineClass(class)
 }
 
-func (c *controller) reconcileClusterAWSMachineClass(class *v1alpha1.AWSMachineClass) error {
+func (c *controller) reconcileClusterAWSMachineClass(class *v1alpha2.AWSMachineClass) error {
 	klog.V(4).Info("Start Reconciling awsmachineclass: ", class.Name)
 	defer func() {
 		c.enqueueAwsMachineClassAfter(class, 10*time.Minute)
@@ -176,7 +176,7 @@ func (c *controller) reconcileClusterAWSMachineClass(class *v1alpha1.AWSMachineC
 	Manipulate Finalizers
 */
 
-func (c *controller) addAWSMachineClassFinalizers(class *v1alpha1.AWSMachineClass) error {
+func (c *controller) addAWSMachineClassFinalizers(class *v1alpha2.AWSMachineClass) error {
 	clone := class.DeepCopy()
 
 	if finalizers := sets.NewString(clone.Finalizers...); !finalizers.Has(DeleteFinalizerName) {
@@ -186,7 +186,7 @@ func (c *controller) addAWSMachineClassFinalizers(class *v1alpha1.AWSMachineClas
 	return nil
 }
 
-func (c *controller) deleteAWSMachineClassFinalizers(class *v1alpha1.AWSMachineClass) error {
+func (c *controller) deleteAWSMachineClassFinalizers(class *v1alpha2.AWSMachineClass) error {
 	clone := class.DeepCopy()
 
 	if finalizers := sets.NewString(clone.Finalizers...); finalizers.Has(DeleteFinalizerName) {
@@ -196,7 +196,7 @@ func (c *controller) deleteAWSMachineClassFinalizers(class *v1alpha1.AWSMachineC
 	return nil
 }
 
-func (c *controller) updateAWSMachineClassFinalizers(class *v1alpha1.AWSMachineClass, finalizers []string) error {
+func (c *controller) updateAWSMachineClassFinalizers(class *v1alpha2.AWSMachineClass, finalizers []string) error {
 	// Get the latest version of the class so that we can avoid conflicts
 	class, err := c.controlMachineClient.AWSMachineClasses(class.Namespace).Get(class.Name, metav1.GetOptions{})
 	if err != nil {

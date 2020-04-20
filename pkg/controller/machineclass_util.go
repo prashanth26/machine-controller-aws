@@ -18,18 +18,18 @@ limitations under the License.
 package controller
 
 import (
-	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
 	"k8s.io/apimachinery/pkg/labels"
 )
 
 /*
 TODO: Move this code to MCM/MachineSet controller as well?
-func (c *controller) findMachineDeploymentsForClass(kind, name string) ([]*v1alpha1.MachineDeployment, error) {
+func (c *controller) findMachineDeploymentsForClass(kind, name string) ([]*v1alpha2.MachineDeployment, error) {
 	machineDeployments, err := c.machineDeploymentLister.List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
-	var filtered []*v1alpha1.MachineDeployment
+	var filtered []*v1alpha2.MachineDeployment
 	for _, machineDeployment := range machineDeployments {
 		if machineDeployment.Spec.Template.Spec.Class.Kind == kind && machineDeployment.Spec.Template.Spec.Class.Name == name {
 			filtered = append(filtered, machineDeployment)
@@ -38,12 +38,12 @@ func (c *controller) findMachineDeploymentsForClass(kind, name string) ([]*v1alp
 	return filtered, nil
 }
 
-func (c *controller) findMachineSetsForClass(kind, name string) ([]*v1alpha1.MachineSet, error) {
+func (c *controller) findMachineSetsForClass(kind, name string) ([]*v1alpha2.MachineSet, error) {
 	machineSets, err := c.machineSetLister.List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
-	var filtered []*v1alpha1.MachineSet
+	var filtered []*v1alpha2.MachineSet
 	for _, machineSet := range machineSets {
 		if machineSet.Spec.Template.Spec.Class.Kind == kind && machineSet.Spec.Template.Spec.Class.Name == name {
 			filtered = append(filtered, machineSet)
@@ -53,12 +53,12 @@ func (c *controller) findMachineSetsForClass(kind, name string) ([]*v1alpha1.Mac
 }
 */
 
-func (c *controller) findMachinesForClass(kind, name string) ([]*v1alpha1.Machine, error) {
+func (c *controller) findMachinesForClass(kind, name string) ([]*v1alpha2.Machine, error) {
 	machines, err := c.machineLister.List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
-	var filtered []*v1alpha1.Machine
+	var filtered []*v1alpha2.Machine
 	for _, machine := range machines {
 		if machine.Spec.Class.Kind == kind && machine.Spec.Class.Name == name {
 			filtered = append(filtered, machine)

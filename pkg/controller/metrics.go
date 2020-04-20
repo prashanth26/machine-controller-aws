@@ -20,7 +20,7 @@ package controller
 import (
 	"strconv"
 
-	v1alpha1 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	v1alpha2 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
 	"github.com/gardener/machine-controller-manager/pkg/metrics"
 	"github.com/prometheus/client_golang/prometheus"
 	v1 "k8s.io/api/core/v1"
@@ -78,7 +78,7 @@ func (c *controller) CollectMachineDeploymentMetrics(ch chan<- prometheus.Metric
 			"name":      mdMeta.Name,
 			"namespace": mdMeta.Namespace}).Set(float64(mdSpec.MinReadySeconds))
 
-		if mdSpec.Strategy.Type == v1alpha1.RollingUpdateMachineDeploymentStrategyType {
+		if mdSpec.Strategy.Type == v1alpha2.RollingUpdateMachineDeploymentStrategyType {
 			metrics.MachineDeploymentInfoSpecRollingUpdateMaxSurge.With(prometheus.Labels{
 				"name":      mdMeta.Name,
 				"namespace": mdMeta.Namespace}).Set(float64(mdSpec.Strategy.RollingUpdate.MaxSurge.IntValue()))
@@ -105,11 +105,11 @@ func (c *controller) CollectMachineDeploymentMetrics(ch chan<- prometheus.Metric
 		for _, condition := range machineDeployment.Status.Conditions {
 			var status float64
 			switch condition.Status {
-			case v1alpha1.ConditionTrue:
+			case v1alpha2.ConditionTrue:
 				status = 1
-			case v1alpha1.ConditionFalse:
+			case v1alpha2.ConditionFalse:
 				status = 0
-			case v1alpha1.ConditionUnknown:
+			case v1alpha2.ConditionUnknown:
 				status = 2
 			}
 
@@ -188,11 +188,11 @@ func (c *controller) CollectMachineSetMetrics(ch chan<- prometheus.Metric) {
 		for _, condition := range machineSet.Status.Conditions {
 			var status float64
 			switch condition.Status {
-			case v1alpha1.ConditionTrue:
+			case v1alpha2.ConditionTrue:
 				status = 1
-			case v1alpha1.ConditionFalse:
+			case v1alpha2.ConditionFalse:
 				status = 0
-			case v1alpha1.ConditionUnknown:
+			case v1alpha2.ConditionUnknown:
 				status = 2
 			}
 
@@ -282,17 +282,17 @@ func (c *controller) CollectMachineMetrics(ch chan<- prometheus.Metric) {
 
 		var phase float64
 		switch machine.Status.CurrentStatus.Phase {
-		case v1alpha1.MachinePending:
+		case v1alpha2.MachinePending:
 			phase = -2
-		case v1alpha1.MachineAvailable:
+		case v1alpha2.MachineAvailable:
 			phase = -1
-		case v1alpha1.MachineRunning:
+		case v1alpha2.MachineRunning:
 			phase = 0
-		case v1alpha1.MachineTerminating:
+		case v1alpha2.MachineTerminating:
 			phase = 1
-		case v1alpha1.MachineUnknown:
+		case v1alpha2.MachineUnknown:
 			phase = 2
-		case v1alpha1.MachineFailed:
+		case v1alpha2.MachineFailed:
 			phase = 3
 		}
 		metrics.MachineCSPhase.With(prometheus.Labels{

@@ -40,7 +40,7 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/drain"
 
 	machineapi "github.com/gardener/machine-controller-manager/pkg/apis/machine"
-	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1"
+	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/validation"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 )
@@ -113,7 +113,7 @@ func (c *controller) reconcileClusterMachineKey(key string) error {
 	return c.reconcileClusterMachine(machine)
 }
 
-func (c *controller) reconcileClusterMachine(machine *v1alpha1.Machine) error {
+func (c *controller) reconcileClusterMachine(machine *v1alpha2.Machine) error {
 	klog.V(4).Info("Start Reconciling machine: ", machine.Name)
 	defer func() {
 		c.enqueueMachineAfter(machine, 10*time.Minute)
@@ -196,7 +196,7 @@ func (c *controller) reconcileClusterMachine(machine *v1alpha1.Machine) error {
 		// Processing of create or update event
 		c.addMachineFinalizers(machine)
 
-		if machine.Status.CurrentStatus.Phase == v1alpha1.MachineFailed {
+		if machine.Status.CurrentStatus.Phase == v1alpha2.MachineFailed {
 			return nil
 		} else if actualProviderID == "" {
 			if err := c.machineCreate(machine, driver); err != nil {
@@ -249,7 +249,7 @@ func (c *controller) deleteNodeToMachine(obj interface{}) {
 	NodeToMachine operations
 */
 
-func (c *controller) getMachineFromNode(nodeName string) (*v1alpha1.Machine, error) {
+func (c *controller) getMachineFromNode(nodeName string) (*v1alpha2.Machine, error) {
 	var (
 		list     = []string{nodeName}
 		selector = labels.NewSelector()
@@ -268,7 +268,7 @@ func (c *controller) getMachineFromNode(nodeName string) (*v1alpha1.Machine, err
 	return machines[0], nil
 }
 
-func (c *controller) updateMachineState(machine *v1alpha1.Machine) (*v1alpha1.Machine, error) {
+func (c *controller) updateMachineState(machine *v1alpha2.Machine) (*v1alpha2.Machine, error) {
 	nodeName := machine.Status.Node
 
 	if nodeName == "" {
@@ -306,7 +306,7 @@ func (c *controller) updateMachineState(machine *v1alpha1.Machine) (*v1alpha1.Ma
 		// Node object is not found
 
 		if len(machine.Status.Conditions) > 0 &&
-			machine.Status.CurrentStatus.Phase == v1alpha1.MachineRunning {
+			machine.Status.CurrentStatus.Phase == v1alpha2.MachineRunning {
 			// If machine has conditions on it,
 			// and corresponding node object went missing
 			// and machine is still healthy
@@ -316,15 +316,15 @@ func (c *controller) updateMachineState(machine *v1alpha1.Machine) (*v1alpha1.Ma
 			)
 			klog.Warning(msg)
 
-			currentStatus := v1alpha1.CurrentStatus{
-				Phase:          v1alpha1.MachineUnknown,
+			currentStatus := v1alpha2.CurrentStatus{
+				Phase:          v1alpha2.MachineUnknown,
 				TimeoutActive:  true,
 				LastUpdateTime: metav1.Now(),
 			}
-			lastOperation := v1alpha1.LastOperation{
+			lastOperation := v1alpha2.LastOperation{
 				Description:    msg,
-				State:          v1alpha1.MachineStateProcessing,
-				Type:           v1alpha1.MachineOperationHealthCheck,
+				State:          v1alpha2.MachineStateProcessing,
+				Type:           v1alpha2.MachineOperationHealthCheck,
 				LastUpdateTime: metav1.Now(),
 			}
 			clone, err := c.updateMachineStatus(machine, lastOperation, currentStatus)
@@ -370,21 +370,21 @@ func (c *controller) updateMachineState(machine *v1alpha1.Machine) (*v1alpha1.Ma
 	Machine operations - Create, Update, Delete
 */
 
-func (c *controller) machineCreate(machine *v1alpha1.Machine, driver driver.Driver) error {
+func (c *controller) machineCreate(machine *v1alpha2.Machine, driver driver.Driver) error {
 	klog.V(2).Infof("Creating machine %q, please wait!", machine.Name)
 	var actualProviderID, nodeName string
 
 	err := c.addBootstrapTokenToUserData(machine.Name, driver)
 	if err != nil {
 		klog.Errorf("Error while creating bootstrap token for machine %s: %s", machine.Name, err.Error())
-		lastOperation := v1alpha1.LastOperation{
+		lastOperation := v1alpha2.LastOperation{
 			Description:    "MCM message - " + err.Error(),
-			State:          v1alpha1.MachineStateFailed,
-			Type:           v1alpha1.MachineOperationCreate,
+			State:          v1alpha2.MachineStateFailed,
+			Type:           v1alpha2.MachineOperationCreate,
 			LastUpdateTime: metav1.Now(),
 		}
-		currentStatus := v1alpha1.CurrentStatus{
-			Phase:          v1alpha1.MachineFailed,
+		currentStatus := v1alpha2.CurrentStatus{
+			Phase:          v1alpha2.MachineFailed,
 			TimeoutActive:  false,
 			LastUpdateTime: metav1.Now(),
 		}
@@ -409,14 +409,14 @@ func (c *controller) machineCreate(machine *v1alpha1.Machine, driver driver.Driv
 
 	if err != nil {
 		klog.Errorf("Error while creating machine %s: %s", machine.Name, err.Error())
-		lastOperation := v1alpha1.LastOperation{
+		lastOperation := v1alpha2.LastOperation{
 			Description:    "Cloud provider message - " + err.Error(),
-			State:          v1alpha1.MachineStateFailed,
-			Type:           v1alpha1.MachineOperationCreate,
+			State:          v1alpha2.MachineStateFailed,
+			Type:           v1alpha2.MachineOperationCreate,
 			LastUpdateTime: metav1.Now(),
 		}
-		currentStatus := v1alpha1.CurrentStatus{
-			Phase:          v1alpha1.MachineFailed,
+		currentStatus := v1alpha2.CurrentStatus{
+			Phase:          v1alpha2.MachineFailed,
 			TimeoutActive:  false,
 			LastUpdateTime: metav1.Now(),
 		}
@@ -457,14 +457,14 @@ func (c *controller) machineCreate(machine *v1alpha1.Machine, driver driver.Driv
 			continue
 		}
 
-		lastOperation := v1alpha1.LastOperation{
+		lastOperation := v1alpha2.LastOperation{
 			Description:    "Creating machine on cloud provider",
-			State:          v1alpha1.MachineStateProcessing,
-			Type:           v1alpha1.MachineOperationCreate,
+			State:          v1alpha2.MachineStateProcessing,
+			Type:           v1alpha2.MachineOperationCreate,
 			LastUpdateTime: metav1.Now(),
 		}
-		currentStatus := v1alpha1.CurrentStatus{
-			Phase:          v1alpha1.MachinePending,
+		currentStatus := v1alpha2.CurrentStatus{
+			Phase:          v1alpha2.MachinePending,
 			TimeoutActive:  true,
 			LastUpdateTime: metav1.Now(),
 		}
@@ -504,7 +504,7 @@ func (c *controller) machineCreate(machine *v1alpha1.Machine, driver driver.Driv
 	return nil
 }
 
-func (c *controller) machineUpdate(machine *v1alpha1.Machine, actualProviderID string) error {
+func (c *controller) machineUpdate(machine *v1alpha2.Machine, actualProviderID string) error {
 	klog.V(2).Infof("Setting MachineId of %s to %s", machine.Name, actualProviderID)
 
 	for {
@@ -523,10 +523,10 @@ func (c *controller) machineUpdate(machine *v1alpha1.Machine, actualProviderID s
 		}
 
 		clone = machine.DeepCopy()
-		lastOperation := v1alpha1.LastOperation{
+		lastOperation := v1alpha2.LastOperation{
 			Description:    "Updated provider ID",
-			State:          v1alpha1.MachineStateSuccessful,
-			Type:           v1alpha1.MachineOperationUpdate,
+			State:          v1alpha2.MachineStateSuccessful,
+			Type:           v1alpha2.MachineOperationUpdate,
 			LastUpdateTime: metav1.Now(),
 		}
 		clone.Status.LastOperation = lastOperation
@@ -542,7 +542,7 @@ func (c *controller) machineUpdate(machine *v1alpha1.Machine, actualProviderID s
 	return nil
 }
 
-func (c *controller) machineDelete(machine *v1alpha1.Machine, driver driver.Driver) error {
+func (c *controller) machineDelete(machine *v1alpha2.Machine, driver driver.Driver) error {
 	var err error
 	nodeName := machine.Status.Node
 
@@ -552,15 +552,15 @@ func (c *controller) machineDelete(machine *v1alpha1.Machine, driver driver.Driv
 		// If machine was created on the cloud provider
 		machineID, _ := driver.GetExisting()
 
-		if machine.Status.CurrentStatus.Phase != v1alpha1.MachineTerminating {
-			lastOperation := v1alpha1.LastOperation{
+		if machine.Status.CurrentStatus.Phase != v1alpha2.MachineTerminating {
+			lastOperation := v1alpha2.LastOperation{
 				Description:    "Deleting machine from cloud provider",
-				State:          v1alpha1.MachineStateProcessing,
-				Type:           v1alpha1.MachineOperationDelete,
+				State:          v1alpha2.MachineStateProcessing,
+				Type:           v1alpha2.MachineOperationDelete,
 				LastUpdateTime: metav1.Now(),
 			}
-			currentStatus := v1alpha1.CurrentStatus{
-				Phase:          v1alpha1.MachineTerminating,
+			currentStatus := v1alpha2.CurrentStatus{
+				Phase:          v1alpha2.MachineTerminating,
 				TimeoutActive:  false,
 				LastUpdateTime: metav1.Now(),
 			}
@@ -645,10 +645,10 @@ func (c *controller) machineDelete(machine *v1alpha1.Machine, driver driver.Driv
 
 			} else {
 				// Drain failed on normal (non-force) deletion, return error for retry
-				lastOperation := v1alpha1.LastOperation{
+				lastOperation := v1alpha2.LastOperation{
 					Description:    "Drain failed - " + err.Error(),
-					State:          v1alpha1.MachineStateFailed,
-					Type:           v1alpha1.MachineOperationDelete,
+					State:          v1alpha2.MachineStateFailed,
+					Type:           v1alpha2.MachineOperationDelete,
 					LastUpdateTime: metav1.Now(),
 				}
 				c.updateMachineStatus(machine, lastOperation, machine.Status.CurrentStatus)
@@ -685,14 +685,14 @@ func (c *controller) machineDelete(machine *v1alpha1.Machine, driver driver.Driv
 			// When machine deletion fails
 			klog.Errorf("Deletion failed for machine %q: %s", machine.Name, err)
 
-			lastOperation := v1alpha1.LastOperation{
+			lastOperation := v1alpha2.LastOperation{
 				Description:    "Cloud provider message - " + err.Error(),
-				State:          v1alpha1.MachineStateFailed,
-				Type:           v1alpha1.MachineOperationDelete,
+				State:          v1alpha2.MachineStateFailed,
+				Type:           v1alpha2.MachineOperationDelete,
 				LastUpdateTime: metav1.Now(),
 			}
-			currentStatus := v1alpha1.CurrentStatus{
-				Phase:          v1alpha1.MachineFailed,
+			currentStatus := v1alpha2.CurrentStatus{
+				Phase:          v1alpha2.MachineFailed,
 				TimeoutActive:  false,
 				LastUpdateTime: metav1.Now(),
 			}
@@ -706,10 +706,10 @@ func (c *controller) machineDelete(machine *v1alpha1.Machine, driver driver.Driv
 			if err != nil && !apierrors.IsNotFound(err) {
 				// If its an error, and anyother error than object not found
 				message := fmt.Sprintf("Deletion of Node Object %q failed due to error: %s", nodeName, err)
-				lastOperation := v1alpha1.LastOperation{
+				lastOperation := v1alpha2.LastOperation{
 					Description:    message,
-					State:          v1alpha1.MachineStateFailed,
-					Type:           v1alpha1.MachineOperationDelete,
+					State:          v1alpha2.MachineStateFailed,
+					Type:           v1alpha2.MachineOperationDelete,
 					LastUpdateTime: metav1.Now(),
 				}
 				c.updateMachineStatus(machine, lastOperation, machine.Status.CurrentStatus)
@@ -740,10 +740,10 @@ func (c *controller) machineDelete(machine *v1alpha1.Machine, driver driver.Driv
 */
 
 func (c *controller) updateMachineStatus(
-	machine *v1alpha1.Machine,
-	lastOperation v1alpha1.LastOperation,
-	currentStatus v1alpha1.CurrentStatus,
-) (*v1alpha1.Machine, error) {
+	machine *v1alpha2.Machine,
+	lastOperation v1alpha2.LastOperation,
+	currentStatus v1alpha2.CurrentStatus,
+) (*v1alpha2.Machine, error) {
 	// Get the latest version of the machine so that we can avoid conflicts
 	clone, err := c.controlMachineClient.Machines(machine.Namespace).Get(machine.Name, metav1.GetOptions{})
 	if err != nil {
@@ -763,11 +763,11 @@ func (c *controller) updateMachineStatus(
 	return clone, nil
 }
 
-func (c *controller) updateMachineConditions(machine *v1alpha1.Machine, conditions []v1.NodeCondition) (*v1alpha1.Machine, error) {
+func (c *controller) updateMachineConditions(machine *v1alpha2.Machine, conditions []v1.NodeCondition) (*v1alpha2.Machine, error) {
 
 	var (
 		msg                  string
-		lastOperationType    v1alpha1.MachineOperationType
+		lastOperationType    v1alpha2.MachineOperationType
 		objectRequiresUpdate bool
 	)
 
@@ -784,34 +784,34 @@ func (c *controller) updateMachineConditions(machine *v1alpha1.Machine, conditio
 		objectRequiresUpdate = true
 	}
 
-	if clone.Status.CurrentStatus.Phase == v1alpha1.MachineTerminating {
+	if clone.Status.CurrentStatus.Phase == v1alpha2.MachineTerminating {
 		// If machine is already in terminating state, don't update health status
 
-	} else if !c.isHealthy(clone) && clone.Status.CurrentStatus.Phase == v1alpha1.MachineRunning {
+	} else if !c.isHealthy(clone) && clone.Status.CurrentStatus.Phase == v1alpha2.MachineRunning {
 		// If machine is not healthy, and current state is running,
 		// change the machinePhase to unknown and activate health check timeout
 		msg = fmt.Sprintf("Machine %s is unhealthy - changing MachineState to Unknown", clone.Name)
 		klog.Warning(msg)
 
-		clone.Status.CurrentStatus = v1alpha1.CurrentStatus{
-			Phase:          v1alpha1.MachineUnknown,
+		clone.Status.CurrentStatus = v1alpha2.CurrentStatus{
+			Phase:          v1alpha2.MachineUnknown,
 			TimeoutActive:  true,
 			LastUpdateTime: metav1.Now(),
 		}
-		clone.Status.LastOperation = v1alpha1.LastOperation{
+		clone.Status.LastOperation = v1alpha2.LastOperation{
 			Description:    msg,
-			State:          v1alpha1.MachineStateProcessing,
-			Type:           v1alpha1.MachineOperationHealthCheck,
+			State:          v1alpha2.MachineStateProcessing,
+			Type:           v1alpha2.MachineOperationHealthCheck,
 			LastUpdateTime: metav1.Now(),
 		}
 		objectRequiresUpdate = true
 
-	} else if c.isHealthy(clone) && clone.Status.CurrentStatus.Phase != v1alpha1.MachineRunning {
+	} else if c.isHealthy(clone) && clone.Status.CurrentStatus.Phase != v1alpha2.MachineRunning {
 		// If machine is healhy and current machinePhase is not running.
 		// indicates that the machine is not healthy and status needs to be updated.
 
-		if clone.Status.LastOperation.Type == v1alpha1.MachineOperationCreate &&
-			clone.Status.LastOperation.State != v1alpha1.MachineStateSuccessful {
+		if clone.Status.LastOperation.Type == v1alpha2.MachineOperationCreate &&
+			clone.Status.LastOperation.State != v1alpha2.MachineStateSuccessful {
 			// When machine creation went through
 			msg = fmt.Sprintf("Machine %s successfully joined the cluster", clone.Name)
 			// Delete the bootstrap token
@@ -820,23 +820,23 @@ func (c *controller) updateMachineConditions(machine *v1alpha1.Machine, conditio
 				klog.Warning(err)
 			}
 
-			lastOperationType = v1alpha1.MachineOperationCreate
+			lastOperationType = v1alpha2.MachineOperationCreate
 		} else {
 			// Machine rejoined the cluster after a healthcheck
 			msg = fmt.Sprintf("Machine %s successfully re-joined the cluster", clone.Name)
-			lastOperationType = v1alpha1.MachineOperationHealthCheck
+			lastOperationType = v1alpha2.MachineOperationHealthCheck
 		}
 		klog.V(2).Infof(msg)
 
 		// Machine is ready and has joined/re-joined the cluster
-		clone.Status.LastOperation = v1alpha1.LastOperation{
+		clone.Status.LastOperation = v1alpha2.LastOperation{
 			Description:    msg,
-			State:          v1alpha1.MachineStateSuccessful,
+			State:          v1alpha2.MachineStateSuccessful,
 			Type:           lastOperationType,
 			LastUpdateTime: metav1.Now(),
 		}
-		clone.Status.CurrentStatus = v1alpha1.CurrentStatus{
-			Phase:          v1alpha1.MachineRunning,
+		clone.Status.CurrentStatus = v1alpha2.CurrentStatus{
+			Phase:          v1alpha2.MachineRunning,
 			TimeoutActive:  false,
 			LastUpdateTime: metav1.Now(),
 		}
@@ -858,7 +858,7 @@ func (c *controller) updateMachineConditions(machine *v1alpha1.Machine, conditio
 	return machine, nil
 }
 
-func (c *controller) updateMachineFinalizers(machine *v1alpha1.Machine, finalizers []string) {
+func (c *controller) updateMachineFinalizers(machine *v1alpha2.Machine, finalizers []string) {
 	// Get the latest version of the machine so that we can avoid conflicts
 	machine, err := c.controlMachineClient.Machines(machine.Namespace).Get(machine.Name, metav1.GetOptions{})
 	if err != nil {
@@ -880,7 +880,7 @@ func (c *controller) updateMachineFinalizers(machine *v1alpha1.Machine, finalize
 	Manipulate Finalizers
 */
 
-func (c *controller) addMachineFinalizers(machine *v1alpha1.Machine) {
+func (c *controller) addMachineFinalizers(machine *v1alpha2.Machine) {
 	clone := machine.DeepCopy()
 
 	if finalizers := sets.NewString(clone.Finalizers...); !finalizers.Has(DeleteFinalizerName) {
@@ -889,7 +889,7 @@ func (c *controller) addMachineFinalizers(machine *v1alpha1.Machine) {
 	}
 }
 
-func (c *controller) deleteMachineFinalizers(machine *v1alpha1.Machine) {
+func (c *controller) deleteMachineFinalizers(machine *v1alpha2.Machine) {
 	clone := machine.DeepCopy()
 
 	if finalizers := sets.NewString(clone.Finalizers...); finalizers.Has(DeleteFinalizerName) {
@@ -902,7 +902,7 @@ func (c *controller) deleteMachineFinalizers(machine *v1alpha1.Machine) {
 	SECTION
 	Helper Functions
 */
-func (c *controller) isHealthy(machine *v1alpha1.Machine) bool {
+func (c *controller) isHealthy(machine *v1alpha2.Machine) bool {
 	numOfConditions := len(machine.Status.Conditions)
 
 	if numOfConditions == 0 {
@@ -938,19 +938,19 @@ func (c *controller) getSecret(ref *v1.SecretReference, MachineClassName string)
 	return secretRef, err
 }
 
-func (c *controller) checkMachineTimeout(machine *v1alpha1.Machine) {
+func (c *controller) checkMachineTimeout(machine *v1alpha2.Machine) {
 
 	// If machine phase is running already, ignore this loop
-	if machine.Status.CurrentStatus.Phase != v1alpha1.MachineRunning {
+	if machine.Status.CurrentStatus.Phase != v1alpha2.MachineRunning {
 
 		var (
 			description     string
-			lastOperation   v1alpha1.LastOperation
-			currentStatus   v1alpha1.CurrentStatus
+			lastOperation   v1alpha2.LastOperation
+			currentStatus   v1alpha2.CurrentStatus
 			timeOutDuration time.Duration
 		)
 
-		checkCreationTimeout := machine.Status.CurrentStatus.Phase == v1alpha1.MachinePending
+		checkCreationTimeout := machine.Status.CurrentStatus.Phase == v1alpha2.MachinePending
 		sleepTime := 1 * time.Minute
 
 		if checkCreationTimeout {
@@ -981,14 +981,14 @@ func (c *controller) checkMachineTimeout(machine *v1alpha1.Machine) {
 				)
 			}
 
-			lastOperation = v1alpha1.LastOperation{
+			lastOperation = v1alpha2.LastOperation{
 				Description:    description,
-				State:          v1alpha1.MachineStateFailed,
+				State:          v1alpha2.MachineStateFailed,
 				Type:           machine.Status.LastOperation.Type,
 				LastUpdateTime: metav1.Now(),
 			}
-			currentStatus = v1alpha1.CurrentStatus{
-				Phase:          v1alpha1.MachineFailed,
+			currentStatus = v1alpha2.CurrentStatus{
+				Phase:          v1alpha2.MachineFailed,
 				TimeoutActive:  false,
 				LastUpdateTime: metav1.Now(),
 			}
@@ -1006,7 +1006,7 @@ func (c *controller) checkMachineTimeout(machine *v1alpha1.Machine) {
 	}
 }
 
-func shouldReconcileMachine(machine *v1alpha1.Machine, now time.Time) bool {
+func shouldReconcileMachine(machine *v1alpha2.Machine, now time.Time) bool {
 	if machine.DeletionTimestamp != nil {
 		return true
 	}
