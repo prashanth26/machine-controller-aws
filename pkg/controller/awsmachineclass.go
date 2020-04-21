@@ -32,90 +32,90 @@ import (
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/validation"
 )
 
-// AWSMachineClassKind is used to identify the machineClassKind as AWS
-const AWSMachineClassKind = "AWSMachineClass"
+// machineClassKind is used to identify the machineClassKind as AWS
+const machineClassKind = "machineClass"
 
-func (c *controller) machineDeploymentToAWSMachineClassDelete(obj interface{}) {
+func (c *controller) machineDeploymentTomachineClassDelete(obj interface{}) {
 	machineDeployment, ok := obj.(*v1alpha2.MachineDeployment)
 	if machineDeployment == nil || !ok {
 		return
 	}
-	if machineDeployment.Spec.Template.Spec.Class.Kind == AWSMachineClassKind {
-		c.awsMachineClassQueue.Add(machineDeployment.Spec.Template.Spec.Class.Name)
+	if machineDeployment.Spec.Template.Spec.Class.Kind == machineClassKind {
+		c.machineClassQueue.Add(machineDeployment.Spec.Template.Spec.Class.Name)
 	}
 }
 
-func (c *controller) machineSetToAWSMachineClassDelete(obj interface{}) {
+func (c *controller) machineSetTomachineClassDelete(obj interface{}) {
 	machineSet, ok := obj.(*v1alpha2.MachineSet)
 	if machineSet == nil || !ok {
 		return
 	}
-	if machineSet.Spec.Template.Spec.Class.Kind == AWSMachineClassKind {
-		c.awsMachineClassQueue.Add(machineSet.Spec.Template.Spec.Class.Name)
+	if machineSet.Spec.Template.Spec.Class.Kind == machineClassKind {
+		c.machineClassQueue.Add(machineSet.Spec.Template.Spec.Class.Name)
 	}
 }
 
-func (c *controller) machineToAWSMachineClassDelete(obj interface{}) {
+func (c *controller) machineTomachineClassDelete(obj interface{}) {
 	machine, ok := obj.(*v1alpha2.Machine)
 	if machine == nil || !ok {
 		return
 	}
-	if machine.Spec.Class.Kind == AWSMachineClassKind {
-		c.awsMachineClassQueue.Add(machine.Spec.Class.Name)
+	if machine.Spec.Class.Kind == machineClassKind {
+		c.machineClassQueue.Add(machine.Spec.Class.Name)
 	}
 }
 
-func (c *controller) awsMachineClassAdd(obj interface{}) {
+func (c *controller) machineClassAdd(obj interface{}) {
 	key, err := cache.DeletionHandlingMetaNamespaceKeyFunc(obj)
 	if err != nil {
 		klog.Errorf("Couldn't get key for object %+v: %v", obj, err)
 		return
 	}
-	c.awsMachineClassQueue.Add(key)
+	c.machineClassQueue.Add(key)
 }
 
-func (c *controller) awsMachineClassUpdate(oldObj, newObj interface{}) {
-	old, ok := oldObj.(*v1alpha2.AWSMachineClass)
+func (c *controller) machineClassUpdate(oldObj, newObj interface{}) {
+	old, ok := oldObj.(*v1alpha2.MachineClass)
 	if old == nil || !ok {
 		return
 	}
-	new, ok := newObj.(*v1alpha2.AWSMachineClass)
+	new, ok := newObj.(*v1alpha2.MachineClass)
 	if new == nil || !ok {
 		return
 	}
 
-	c.awsMachineClassAdd(newObj)
+	c.machineClassAdd(newObj)
 }
 
-// reconcileClusterAWSMachineClassKey reconciles an AWSMachineClass due to controller resync
-// or an event on the awsMachineClass.
-func (c *controller) reconcileClusterAWSMachineClassKey(key string) error {
+// reconcileClustermachineClassKey reconciles an machineClass due to controller resync
+// or an event on the machineClass.
+func (c *controller) reconcileClustermachineClassKey(key string) error {
 	_, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		return err
 	}
 
-	class, err := c.awsMachineClassLister.AWSMachineClasses(c.namespace).Get(name)
+	class, err := c.machineClassLister.MachineClasses(c.namespace).Get(name)
 	if errors.IsNotFound(err) {
-		klog.Infof("%s %q: Not doing work because it has been deleted", AWSMachineClassKind, key)
+		klog.Infof("%s %q: Not doing work because it has been deleted", machineClassKind, key)
 		return nil
 	}
 	if err != nil {
-		klog.Infof("%s %q: Unable to retrieve object from store: %v", AWSMachineClassKind, key, err)
+		klog.Infof("%s %q: Unable to retrieve object from store: %v", machineClassKind, key, err)
 		return err
 	}
 
-	return c.reconcileClusterAWSMachineClass(class)
+	return c.reconcileClustermachineClass(class)
 }
 
-func (c *controller) reconcileClusterAWSMachineClass(class *v1alpha2.AWSMachineClass) error {
-	klog.V(4).Info("Start Reconciling awsmachineclass: ", class.Name)
+func (c *controller) reconcileClustermachineClass(class *v1alpha2.MachineClass) error {
+	klog.V(4).Info("Start Reconciling machineclass: ", class.Name)
 	defer func() {
-		c.enqueueAwsMachineClassAfter(class, 10*time.Minute)
-		klog.V(4).Info("Stop Reconciling awsmachineclass: ", class.Name)
+		c.enqueuemachineClassAfter(class, 10*time.Minute)
+		klog.V(4).Info("Stop Reconciling machineclass: ", class.Name)
 	}()
 
-	internalClass := &machine.AWSMachineClass{}
+	internalClass := &machine.MachineClass{}
 	err := c.internalExternalScheme.Convert(class, internalClass, nil)
 	if err != nil {
 		return err
@@ -123,19 +123,19 @@ func (c *controller) reconcileClusterAWSMachineClass(class *v1alpha2.AWSMachineC
 	// TODO this should be put in own API server
 	validationerr := validation.ValidateAWSMachineClass(internalClass)
 	if validationerr.ToAggregate() != nil && len(validationerr.ToAggregate().Errors()) > 0 {
-		klog.Errorf("Validation of %s failed %s", AWSMachineClassKind, validationerr.ToAggregate().Error())
+		klog.Errorf("Validation of %s failed %s", machineClassKind, validationerr.ToAggregate().Error())
 		return nil
 	}
 
 	// Manipulate finalizers
 	if class.DeletionTimestamp == nil {
-		err = c.addAWSMachineClassFinalizers(class)
+		err = c.addmachineClassFinalizers(class)
 		if err != nil {
 			return err
 		}
 	}
 
-	machines, err := c.findMachinesForClass(AWSMachineClassKind, class.Name)
+	machines, err := c.findMachinesForClass(machineClassKind, class.Name)
 	if err != nil {
 		return err
 	}
@@ -147,18 +147,18 @@ func (c *controller) reconcileClusterAWSMachineClass(class *v1alpha2.AWSMachineC
 
 		/*
 			TODO: Check this at CMI-Server?
-			machineDeployments, err := c.findMachineDeploymentsForClass(AWSMachineClassKind, class.Name)
+			machineDeployments, err := c.findMachineDeploymentsForClass(machineClassKind, class.Name)
 			if err != nil {
 				return err
 			}
-			machineSets, err := c.findMachineSetsForClass(AWSMachineClassKind, class.Name)
+			machineSets, err := c.findMachineSetsForClass(machineClassKind, class.Name)
 			if err != nil {
 				return err
 			}
 		*/
 
 		if len(machines) == 0 {
-			return c.deleteAWSMachineClassFinalizers(class)
+			return c.deletemachineClassFinalizers(class)
 		}
 
 		klog.V(3).Infof("Cannot remove finalizer of %s because still Machine[s|Sets|Deployments] are referencing it", class.Name)
@@ -176,48 +176,48 @@ func (c *controller) reconcileClusterAWSMachineClass(class *v1alpha2.AWSMachineC
 	Manipulate Finalizers
 */
 
-func (c *controller) addAWSMachineClassFinalizers(class *v1alpha2.AWSMachineClass) error {
+func (c *controller) addmachineClassFinalizers(class *v1alpha2.MachineClass) error {
 	clone := class.DeepCopy()
 
 	if finalizers := sets.NewString(clone.Finalizers...); !finalizers.Has(DeleteFinalizerName) {
 		finalizers.Insert(DeleteFinalizerName)
-		return c.updateAWSMachineClassFinalizers(clone, finalizers.List())
+		return c.updatemachineClassFinalizers(clone, finalizers.List())
 	}
 	return nil
 }
 
-func (c *controller) deleteAWSMachineClassFinalizers(class *v1alpha2.AWSMachineClass) error {
+func (c *controller) deletemachineClassFinalizers(class *v1alpha2.MachineClass) error {
 	clone := class.DeepCopy()
 
 	if finalizers := sets.NewString(clone.Finalizers...); finalizers.Has(DeleteFinalizerName) {
 		finalizers.Delete(DeleteFinalizerName)
-		return c.updateAWSMachineClassFinalizers(clone, finalizers.List())
+		return c.updatemachineClassFinalizers(clone, finalizers.List())
 	}
 	return nil
 }
 
-func (c *controller) updateAWSMachineClassFinalizers(class *v1alpha2.AWSMachineClass, finalizers []string) error {
+func (c *controller) updatemachineClassFinalizers(class *v1alpha2.MachineClass, finalizers []string) error {
 	// Get the latest version of the class so that we can avoid conflicts
-	class, err := c.controlMachineClient.AWSMachineClasses(class.Namespace).Get(class.Name, metav1.GetOptions{})
+	class, err := c.controlMachineClient.machineClasses(class.Namespace).Get(class.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
 	clone := class.DeepCopy()
 	clone.Finalizers = finalizers
-	_, err = c.controlMachineClient.AWSMachineClasses(class.Namespace).Update(clone)
+	_, err = c.controlMachineClient.machineClasses(class.Namespace).Update(clone)
 	if err != nil {
-		klog.Warning("Updating AWSMachineClass failed, retrying. ", class.Name, err)
+		klog.Warning("Updating machineClass failed, retrying. ", class.Name, err)
 		return err
 	}
-	klog.V(3).Infof("Successfully added/removed finalizer on the awsmachineclass %q", class.Name)
+	klog.V(3).Infof("Successfully added/removed finalizer on the machineclass %q", class.Name)
 	return err
 }
 
-func (c *controller) enqueueAwsMachineClassAfter(obj interface{}, after time.Duration) {
+func (c *controller) enqueuemachineClassAfter(obj interface{}, after time.Duration) {
 	key, err := cache.MetaNamespaceKeyFunc(obj)
 	if err != nil {
 		return
 	}
-	c.awsMachineClassQueue.AddAfter(key, after)
+	c.machineClassQueue.AddAfter(key, after)
 }

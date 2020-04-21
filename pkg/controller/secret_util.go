@@ -40,7 +40,7 @@ func (c *controller) existsMachineClassForSecret(name string) (bool, error) {
 
 // findAWSClassForSecret returns the set of
 // AWSMachineClasses referring to the passed secret
-func (c *controller) findAWSMachineClassForSecret(name string) ([]*v1alpha2.AWSMachineClass, error) {
+func (c *controller) findAWSMachineClassForSecret(name string) ([]*v1alpha2.MachineClass, error) {
 	machineClasses, err := c.awsMachineClassLister.List(labels.Everything())
 	if err != nil {
 		return nil, err

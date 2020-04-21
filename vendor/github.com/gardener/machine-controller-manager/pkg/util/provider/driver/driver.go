@@ -18,21 +18,91 @@ limitations under the License.
 package driver
 
 import (
+	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 )
 
 // Driver is the common interface for creation/deletion of the VMs over different cloud-providers.
 type Driver interface {
-	Create() (string, string, error)
-	Delete(string) error
-	GetExisting() (string, error)
-	GetVMs(string) (VMs, error)
-	GetVolNames([]corev1.PersistentVolumeSpec) ([]string, error)
-	GetUserData() string
-	SetUserData(string)
+	CreateMachine(*CreateMachineRequest) (*CreateMachineResponse, error)
+	DeleteMachine(*DeleteMachineRequest) (*DeleteMachineResponse, error)
+	GetMachineStatus(*GetMachineStatusRequest) (*GetMachineStatusResponse, error)
+	ListMachines(*ListMachinesRequest) (*ListMachinesResponse, error)
+	GetVolumeIDs(*GetVolumeIDsRequest) (*GetVolumeIDsResponse, error)
 }
 
-// VMs maintains a list of VM returned by the provider
-// Key refers to the machine-id on the cloud provider
-// value refers to the machine-name of the machine object
-type VMs map[string]string
+// CreateMachineRequest is the create request for VM creation
+type CreateMachineRequest struct {
+	// Machine object from whom VM is to be created
+	Machine *v1alpha2.Machine
+
+	// MachineClass backing the machine object
+	MachineClass *v1alpha2.MachineClass
+}
+
+// CreateMachineResponse is the create response for VM creation
+type CreateMachineResponse struct {
+	// ProviderID is the unique identification of the VM at the cloud provider.
+	// ProviderID typically matches with the node.Spec.ProviderID on the node object.
+	// Eg: gce://project-name/region/vm-ID
+	ProviderID string
+
+	// NodeName is the name of the node-object registered to kubernetes.
+	NodeName string
+}
+
+// DeleteMachineRequest is the delete request for VM deletion
+type DeleteMachineRequest struct {
+	// Machine object from whom VM is to be deleted
+	Machine *v1alpha2.Machine
+
+	// MachineClass backing the machine object
+	MachineClass *v1alpha2.MachineClass
+}
+
+// DeleteMachineResponse is the delete response for VM deletion
+type DeleteMachineResponse struct {
+}
+
+// GetMachineStatusRequest is the get request for VM info
+type GetMachineStatusRequest struct {
+	// Machine object from whom VM status is to be fetched
+	Machine *v1alpha2.Machine
+
+	// MachineClass backing the machine object
+	MachineClass *v1alpha2.MachineClass
+}
+
+// GetMachineStatusResponse is the get response for VM info
+type GetMachineStatusResponse struct {
+	// ProviderID is the unique identification of the VM at the cloud provider.
+	// ProviderID typically matches with the node.Spec.ProviderID on the node object.
+	// Eg: gce://project-name/region/vm-ID
+	ProviderID string
+
+	// NodeName is the name of the node-object registered to kubernetes.
+	NodeName string
+}
+
+// ListMachinesRequest is the request object to get a list of VMs belonging to a machineClass
+type ListMachinesRequest struct {
+	// MachineClass backing the machine object
+	MachineClass *v1alpha2.MachineClass
+}
+
+// ListMachinesResponse is the response object of the list of VMs belonging to a machineClass
+type ListMachinesResponse struct {
+	// MachineList is the map of list of machines. Format for the map should be <ProviderID, MachineName>.
+	MachineList map[string]string
+}
+
+// GetVolumeIDsRequest is the request object to get a list of VolumeIDs for a PVSpec
+type GetVolumeIDsRequest struct {
+	PVSpecs []*corev1.PersistentVolumeSpec
+}
+
+// GetVolumeIDsResponse is the response object of the list of VolumeIDs for a PVSpec
+type GetVolumeIDsResponse struct {
+	// VolumeIDs is a list of VolumeIDs.
+	VolumeID []string
+}

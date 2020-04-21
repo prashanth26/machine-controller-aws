@@ -70,7 +70,7 @@ func NewController(
 	pvInformer coreinformers.PersistentVolumeInformer,
 	secretInformer coreinformers.SecretInformer,
 	nodeInformer coreinformers.NodeInformer,
-	awsMachineClassInformer machineinformers.AWSMachineClassInformer,
+	machineClassInformer machineinformers.MachineClassInformer,
 	machineInformer machineinformers.MachineInformer,
 	recorder record.EventRecorder,
 	safetyOptions options.SafetyOptions,
@@ -85,7 +85,7 @@ func NewController(
 		expectations:                NewUIDTrackingContExpectations(NewContExpectations()),
 		secretQueue:                 workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "secret"),
 		nodeQueue:                   workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "node"),
-		awsMachineClassQueue:        workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "awsmachineclass"),
+		machineClassQueue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "machineclass"),
 		machineQueue:                workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "machine"),
 		machineSafetyOrphanVMsQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "machinesafetyorphanvms"),
 		machineSafetyAPIServerQueue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "machinesafetyapiserver"),
@@ -121,13 +121,13 @@ func NewController(
 	controller.pvcLister = pvcInformer.Lister()
 	controller.pvLister = pvInformer.Lister()
 	controller.secretLister = secretInformer.Lister()
-	controller.awsMachineClassLister = awsMachineClassInformer.Lister()
+	controller.machineClassLister = machineClassInformer.Lister()
 	controller.nodeLister = nodeInformer.Lister()
 	controller.machineLister = machineInformer.Lister()
 
 	// Controller syncs
 	controller.secretSynced = secretInformer.Informer().HasSynced
-	controller.awsMachineClassSynced = awsMachineClassInformer.Informer().HasSynced
+	controller.machineClassSynced = machineClassInformer.Informer().HasSynced
 	controller.nodeSynced = nodeInformer.Informer().HasSynced
 	controller.machineSynced = machineInformer.Informer().HasSynced
 
@@ -137,19 +137,19 @@ func NewController(
 		DeleteFunc: controller.secretDelete,
 	})
 
-	awsMachineClassInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    controller.awsMachineClassToSecretAdd,
-		UpdateFunc: controller.awsMachineClassToSecretUpdate,
-		DeleteFunc: controller.awsMachineClassToSecretDelete,
+	machineClassInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    controller.machineClassToSecretAdd,
+		UpdateFunc: controller.machineClassToSecretUpdate,
+		DeleteFunc: controller.machineClassToSecretDelete,
 	})
 
 	machineInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		DeleteFunc: controller.machineToAWSMachineClassDelete,
+		DeleteFunc: controller.machineTomachineClassDelete,
 	})
 
-	awsMachineClassInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    controller.awsMachineClassAdd,
-		UpdateFunc: controller.awsMachineClassUpdate,
+	machineClassInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    controller.machineClassAdd,
+		UpdateFunc: controller.machineClassUpdate,
 	})
 
 	// Machine Controller Informers
@@ -206,24 +206,24 @@ type controller struct {
 
 	internalExternalScheme *runtime.Scheme
 	// listers
-	pvcLister             corelisters.PersistentVolumeClaimLister
-	pvLister              corelisters.PersistentVolumeLister
-	secretLister          corelisters.SecretLister
-	nodeLister            corelisters.NodeLister
-	awsMachineClassLister machinelisters.AWSMachineClassLister
-	machineLister         machinelisters.MachineLister
+	pvcLister          corelisters.PersistentVolumeClaimLister
+	pvLister           corelisters.PersistentVolumeLister
+	secretLister       corelisters.SecretLister
+	nodeLister         corelisters.NodeLister
+	machineClassLister machinelisters.MachineClassLister
+	machineLister      machinelisters.MachineLister
 	// queues
 	secretQueue                 workqueue.RateLimitingInterface
 	nodeQueue                   workqueue.RateLimitingInterface
-	awsMachineClassQueue        workqueue.RateLimitingInterface
+	machineClassQueue           workqueue.RateLimitingInterface
 	machineQueue                workqueue.RateLimitingInterface
 	machineSafetyOrphanVMsQueue workqueue.RateLimitingInterface
 	machineSafetyAPIServerQueue workqueue.RateLimitingInterface
 	// syncs
-	secretSynced          cache.InformerSynced
-	nodeSynced            cache.InformerSynced
-	awsMachineClassSynced cache.InformerSynced
-	machineSynced         cache.InformerSynced
+	secretSynced       cache.InformerSynced
+	nodeSynced         cache.InformerSynced
+	machineClassSynced cache.InformerSynced
+	machineSynced      cache.InformerSynced
 }
 
 func (c *controller) Run(workers int, stopCh <-chan struct{}) {
@@ -235,12 +235,12 @@ func (c *controller) Run(workers int, stopCh <-chan struct{}) {
 	defer runtimeutil.HandleCrash()
 	defer c.nodeQueue.ShutDown()
 	defer c.secretQueue.ShutDown()
-	defer c.awsMachineClassQueue.ShutDown()
+	defer c.machineClassQueue.ShutDown()
 	defer c.machineQueue.ShutDown()
 	defer c.machineSafetyOrphanVMsQueue.ShutDown()
 	defer c.machineSafetyAPIServerQueue.ShutDown()
 
-	if !cache.WaitForCacheSync(stopCh, c.secretSynced, c.nodeSynced, c.awsMachineClassSynced, c.machineSynced) {
+	if !cache.WaitForCacheSync(stopCh, c.secretSynced, c.nodeSynced, c.machineClassSynced, c.machineSynced) {
 		runtimeutil.HandleError(fmt.Errorf("Timed out waiting for caches to sync"))
 		return
 	}
@@ -254,7 +254,7 @@ func (c *controller) Run(workers int, stopCh <-chan struct{}) {
 	prometheus.MustRegister(c)
 
 	for i := 0; i < workers; i++ {
-		createWorker(c.awsMachineClassQueue, "ClusterAWSMachineClass", maxRetries, true, c.reconcileClusterAWSMachineClassKey, stopCh, &waitGroup)
+		createWorker(c.machineClassQueue, "ClustermachineClass", maxRetries, true, c.reconcileClustermachineClassKey, stopCh, &waitGroup)
 		createWorker(c.nodeQueue, "ClusterNode", maxRetries, true, c.reconcileClusterNodeKey, stopCh, &waitGroup)
 		createWorker(c.machineQueue, "ClusterMachine", maxRetries, true, c.reconcileClusterMachineKey, stopCh, &waitGroup)
 		createWorker(c.machineSafetyOrphanVMsQueue, "ClusterMachineSafetyOrphanVMs", maxRetries, true, c.reconcileClusterMachineSafetyOrphanVMs, stopCh, &waitGroup)

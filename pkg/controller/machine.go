@@ -36,7 +36,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/gardener/machine-controller-aws/pkg/awsdriver"
+	"github.com/gardener/machine-controller-aws/pkg/aws"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/drain"
 
 	machineapi "github.com/gardener/machine-controller-manager/pkg/apis/machine"
@@ -148,7 +148,7 @@ func (c *controller) reconcileClusterMachine(machine *v1alpha2.Machine) error {
 		return err
 	}
 
-	driver := awsdriver.NewDriver(machine.Spec.ProviderID, secretRef, machine.Spec.Class.Kind, MachineClass, machine.Name)
+	driver := aws.NewDriver(machine.Spec.ProviderID, secretRef, machine.Spec.Class.Kind, MachineClass, machine.Name)
 	actualProviderID, err := driver.GetExisting()
 	if err != nil {
 		return err

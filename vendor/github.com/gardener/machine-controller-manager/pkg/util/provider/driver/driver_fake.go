@@ -17,60 +17,53 @@ limitations under the License.
 // Package driver contains the cloud provider specific implementations to manage machines
 package driver
 
-import corev1 "k8s.io/api/core/v1"
-
 // FakeDriver is a fake driver returned when none of the actual drivers match
 type FakeDriver struct {
-	create func() (string, string, error)
-	delete func(string) error
-	//existing func() (string, v1alpha1.MachinePhase, error)
-	existing    func() (string, error)
-	getVMs      func() (VMs, error)
-	getVolNames func([]corev1.PersistentVolumeSpec) ([]string, error)
+	createMachine    func(*CreateMachineRequest) (*CreateMachineResponse, error)
+	deleteMachine    func(*DeleteMachineRequest) (*DeleteMachineResponse, error)
+	getMachineStatus func(*GetMachineStatusRequest) (*GetMachineStatusResponse, error)
+	listMachines     func(*ListMachinesRequest) (*ListMachinesResponse, error)
+	getVolumeIDs     func(*GetVolumeIDsRequest) (*GetVolumeIDsResponse, error)
 }
 
 // NewFakeDriver returns a new fakedriver object
-func NewFakeDriver(create func() (string, string, error), delete func(string) error, existing func() (string, error), getVMs func() (VMs, error)) Driver {
+func NewFakeDriver(
+	createMachine func(*CreateMachineRequest) (*CreateMachineResponse, error),
+	deleteMachine func(*DeleteMachineRequest) (*DeleteMachineResponse, error),
+	getMachineStatus func(*GetMachineStatusRequest) (*GetMachineStatusResponse, error),
+	listMachines func(*ListMachinesRequest) (*ListMachinesResponse, error),
+	getVolumeIDs func(*GetVolumeIDsRequest) (*GetVolumeIDsResponse, error),
+) Driver {
 	return &FakeDriver{
-		create:   create,
-		delete:   delete,
-		existing: existing,
-		getVMs:   getVMs,
+		createMachine:    createMachine,
+		deleteMachine:    deleteMachine,
+		getMachineStatus: getMachineStatus,
+		listMachines:     listMachines,
+		getVolumeIDs:     getVolumeIDs,
 	}
 }
 
-// Create returns a newly created fake driver
-func (d *FakeDriver) Create() (string, string, error) {
-	return d.create()
+// CreateMachine returns a newly created fake driver
+func (d *FakeDriver) CreateMachine(createMachineRequest *CreateMachineRequest) (*CreateMachineResponse, error) {
+	return d.createMachine(createMachineRequest)
 }
 
-// Delete deletes a fake driver
-func (d *FakeDriver) Delete(machineID string) error {
-	return d.delete(machineID)
+// DeleteMachine deletes the fake machine
+func (d *FakeDriver) DeleteMachine(deleteMachineRequest *DeleteMachineRequest) (*DeleteMachineResponse, error) {
+	return d.deleteMachine(deleteMachineRequest)
 }
 
-// GetExisting returns the existing fake driver
-func (d *FakeDriver) GetExisting() (string, error) {
-	return d.existing()
+// GetMachineStatus returns the machine status
+func (d *FakeDriver) GetMachineStatus(getMachineStatusRequest *GetMachineStatusRequest) (*GetMachineStatusResponse, error) {
+	return d.getMachineStatus(getMachineStatusRequest)
 }
 
-// GetVMs returns a list of VMs
-func (d *FakeDriver) GetVMs(name string) (VMs, error) {
-	return d.getVMs()
+// ListMachines returns the list of VMs for a given machineClass
+func (d *FakeDriver) ListMachines(listMachinesRequest *ListMachinesRequest) (*ListMachinesResponse, error) {
+	return d.listMachines(listMachinesRequest)
 }
 
-// GetVolNames parses volume names from pv specs
-func (d *FakeDriver) GetVolNames(specs []corev1.PersistentVolumeSpec) ([]string, error) {
-	volNames := []string{}
-	return volNames, nil
-}
-
-//GetUserData return the used data whit which the VM will be booted
-func (d *FakeDriver) GetUserData() string {
-	return ""
-}
-
-//SetUserData set the used data whit which the VM will be booted
-func (d *FakeDriver) SetUserData(userData string) {
-	return
+// GetVolumeIDs parses volume names from pv specs
+func (d *FakeDriver) GetVolumeIDs(getVolumeIDs *GetVolumeIDsRequest) (*GetVolumeIDsResponse, error) {
+	return d.getVolumeIDs(getVolumeIDs)
 }

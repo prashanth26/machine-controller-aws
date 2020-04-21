@@ -14,36 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package awsdriver contains the cloud provider specific implementations to manage machines
-package awsdriver
+// Package aws contains the cloud provider specific implementations to manage machines
+package aws
 
 import (
-	"encoding/base64"
-	"errors"
-	"fmt"
-	"strings"
-
-	v1alpha2 "github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
-	"github.com/gardener/machine-controller-manager/pkg/metrics"
+	"github.com/gardener/machine-controller-aws/pkg/spi"
 	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
-	"github.com/prometheus/client_golang/prometheus"
-	corev1 "k8s.io/api/core/v1"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"k8s.io/klog"
 )
 
-// AWSDriver is the driver struct for holding AWS machine information
-type AWSDriver struct {
-	AWSMachineClass *v1alpha2.AWSMachineClass
-	CloudConfig     *corev1.Secret
-	UserData        string
-	MachineID       string
-	MachineName     string
+// Driver is the driver struct for holding AWS machine information
+type Driver struct {
+	SPI spi.SessionProviderInterface
 }
 
 const (
@@ -52,18 +33,58 @@ const (
 )
 
 // NewAWSDriver returns an empty AWSDriver object
-func NewAWSDriver(create func() (string, error), delete func() error, existing func() (string, error)) driver.Driver {
-	return &AWSDriver{}
+func NewAWSDriver(spi spi.SessionProviderInterface) driver.Driver {
+	return &Driver{
+		SPI: spi,
+	}
 }
 
-// Create method is used to create a AWS machine
-func (d *AWSDriver) Create() (string, string, error) {
-	svc, err := d.createSVC()
+// CreateMachine returns a newly created fake driver
+func (d *Driver) CreateMachine(createMachineRequest *driver.CreateMachineRequest) (*driver.CreateMachineResponse, error) {
+	return &driver.CreateMachineResponse{}, nil
+}
+
+// DeleteMachine deletes the fake machine
+func (d *Driver) DeleteMachine(deleteMachineRequest *driver.DeleteMachineRequest) (*driver.DeleteMachineResponse, error) {
+	return &driver.DeleteMachineResponse{}, nil
+}
+
+// GetMachineStatus returns the machine status
+func (d *Driver) GetMachineStatus(getMachineStatusRequest *driver.GetMachineStatusRequest) (*driver.GetMachineStatusResponse, error) {
+	return &driver.GetMachineStatusResponse{}, nil
+}
+
+// ListMachines returns the list of VMs for a given machineClass
+func (d *Driver) ListMachines(listMachinesRequest *driver.ListMachinesRequest) (*driver.ListMachinesResponse, error) {
+	return &driver.ListMachinesResponse{}, nil
+}
+
+// GetVolumeIDs parses volume names from pv specs
+func (d *Driver) GetVolumeIDs(getVolumeIDs *driver.GetVolumeIDsRequest) (*driver.GetVolumeIDsResponse, error) {
+	return &driver.GetVolumeIDsResponse{}, nil
+}
+
+/*
+// CreateMachine method is used to create a AWS machine
+func (d *AWSDriver) CreateMachine(req *driver.CreateMachineRequest) (*driver.CreateMachineResponse, error) {
+	// Log messages to track request
+	glog.V(2).Infof("Machine creation request has been recieved for %q", req.MachineName)
+
+	providerSpec, secrets, err := decodeProviderSpecAndSecret(req.MachineClass, true)
 	if err != nil {
-		return "Error", "Error", err
+		return nil, err
 	}
 
-	UserDataEnc := base64.StdEncoding.EncodeToString([]byte(d.UserData))
+	svc, err := ms.createSVC(secrets, providerSpec.Region)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	UserDataEnc := base64.StdEncoding.EncodeToString([]byte(secrets.UserData))
+
+	var imageIds []*string
+	imageID := aws.String(providerSpec.AMI)
+	imageIds = append(imageIds, imageID)
 
 	var imageIds []*string
 	imageID := aws.String(d.AWSMachineClass.Spec.AMI)
@@ -488,3 +509,4 @@ func (d *AWSDriver) GetUserData() string {
 func (d *AWSDriver) SetUserData(userData string) {
 	d.UserData = userData
 }
+*/

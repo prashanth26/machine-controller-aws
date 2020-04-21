@@ -26,9 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/gardener/machine-controller-aws/pkg/awsdriver"
 	"github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha2"
-	"github.com/gardener/machine-controller-manager/pkg/util/provider/driver"
 	"k8s.io/klog"
 )
 
@@ -268,7 +266,7 @@ func (c *controller) enqueueMachineSafetyOrphanVMsKey(obj interface{}) {
 }
 
 // deleteOrphanVM teriminates's the VM on the cloud provider passed to it
-func (c *controller) deleteOrphanVM(vm driver.VMs, secretRef *corev1.Secret, kind string, machineClass interface{}) {
+func (c *controller) deleteOrphanVM(vm map[string]string, secretRef *corev1.Secret, kind string, machineClass interface{}) {
 
 	var machineID string
 	var machineName string
