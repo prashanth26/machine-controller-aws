@@ -39,7 +39,7 @@ import (
 
 func main() {
 
-	s := options.NewMCMServer()
+	s := options.NewMCServer()
 	s.AddFlags(pflag.CommandLine)
 
 	flag.InitFlags()

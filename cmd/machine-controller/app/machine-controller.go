@@ -32,11 +32,13 @@ import (
 	"strconv"
 	"time"
 
-	machinecontroller "github.com/gardener/machine-controller-aws/pkg/controller"
+	"github.com/gardener/machine-controller-aws/pkg/aws"
+	"github.com/gardener/machine-controller-aws/pkg/spi"
 	machinescheme "github.com/gardener/machine-controller-manager/pkg/client/clientset/versioned/scheme"
 	machineinformers "github.com/gardener/machine-controller-manager/pkg/client/informers/externalversions"
 	coreclientbuilder "github.com/gardener/machine-controller-manager/pkg/util/clientbuilder/core"
 	machineclientbuilder "github.com/gardener/machine-controller-manager/pkg/util/clientbuilder/machine"
+	machinecontroller "github.com/gardener/machine-controller-manager/pkg/util/provider/machinecontroller"
 	coreinformers "k8s.io/client-go/informers"
 	kubescheme "k8s.io/client-go/kubernetes/scheme"
 
@@ -66,8 +68,8 @@ const (
 
 var awsGVR = schema.GroupVersionResource{Group: "machine.sapcloud.io", Version: "v1alpha1", Resource: "awsmachineclasses"}
 
-// Run runs the MCMServer.  This should never exit.
-func Run(s *options.MCMServer) error {
+// Run runs the MCServer.  This should never exit.
+func Run(s *options.MCServer) error {
 	// To help debugging, immediately log version
 	klog.V(4).Infof("Version: %+v", version.Get())
 	if err := s.Validate(); err != nil {
@@ -191,7 +193,7 @@ func Run(s *options.MCMServer) error {
 }
 
 // StartControllers starts all the controllers which are a part of machine-controller-manager
-func StartControllers(s *options.MCMServer,
+func StartControllers(s *options.MCServer,
 	controlCoreKubeconfig *rest.Config,
 	targetCoreKubeconfig *rest.Config,
 	controlMachineClientBuilder machineclientbuilder.ClientBuilder,
@@ -251,11 +253,12 @@ func StartControllers(s *options.MCMServer,
 			controlMachineClient,
 			controlCoreClient,
 			targetCoreClient,
+			aws.NewAWSDriver(&spi.PluginSPIImpl{}),
 			targetCoreInformerFactory.Core().V1().PersistentVolumeClaims(),
 			targetCoreInformerFactory.Core().V1().PersistentVolumes(),
 			controlCoreInformerFactory.Core().V1().Secrets(),
 			targetCoreInformerFactory.Core().V1().Nodes(),
-			machineSharedInformers.AWSMachineClasses(),
+			machineSharedInformers.MachineClasses(),
 			machineSharedInformers.Machines(),
 			recorder,
 			s.SafetyOptions,
@@ -343,7 +346,7 @@ func createRecorder(kubeClient *kubernetes.Clientset) record.EventRecorder {
 	return eventBroadcaster.NewRecorder(kubescheme.Scheme, v1.EventSource{Component: controllerManagerAgentName})
 }
 
-func startHTTP(s *options.MCMServer) {
+func startHTTP(s *options.MCServer) {
 	mux := http.NewServeMux()
 	if s.EnableProfiling {
 		mux.HandleFunc("/debug/pprof/", pprof.Index)

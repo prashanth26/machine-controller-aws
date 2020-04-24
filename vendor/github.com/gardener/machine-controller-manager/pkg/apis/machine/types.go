@@ -157,6 +157,11 @@ type MachineStatus struct {
 
 	// Current status of the machine object
 	CurrentStatus CurrentStatus
+
+	// LastKnownState can store details of the last known state of the VM by the plugins.
+	// It can be used by future operation calls to determine current infrastucture state
+	// +optional
+	LastKnownState string
 }
 
 // LastOperation suggests the last operation performed on the object
@@ -887,6 +892,7 @@ type AzureHardwareProfile struct {
 type AzureStorageProfile struct {
 	ImageReference AzureImageReference
 	OsDisk         AzureOSDisk
+	DataDisks      []AzureDataDisk
 }
 
 // AzureImageReference is specifies information about the image to use. You can specify information about platform images,
@@ -906,6 +912,14 @@ type AzureOSDisk struct {
 	ManagedDisk  AzureManagedDiskParameters
 	DiskSizeGB   int32
 	CreateOption string
+}
+
+type AzureDataDisk struct {
+	Name               string
+	Lun                *int32
+	Caching            string
+	StorageAccountType string
+	DiskSizeGB         int32
 }
 
 // AzureManagedDiskParameters is the parameters of a managed disk.
@@ -1089,6 +1103,7 @@ type AlicloudMachineClassSpec struct {
 	VSwitchID               string
 	PrivateIPAddress        string
 	SystemDisk              *AlicloudSystemDisk
+	DataDisks               []AlicloudDataDisk
 	InstanceChargeType      string
 	InternetChargeType      string
 	InternetMaxBandwidthIn  *int
@@ -1104,6 +1119,16 @@ type AlicloudMachineClassSpec struct {
 type AlicloudSystemDisk struct {
 	Category string
 	Size     int
+}
+
+// AlicloudDataDisk describes DataDisk for Alicloud.
+type AlicloudDataDisk struct {
+	Name               string
+	Category           string
+	Description        string
+	Encrypted          bool
+	Size               int
+	DeleteWithInstance *bool
 }
 
 /********************** PacketMachineClass APIs ***************/

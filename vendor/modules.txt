@@ -34,6 +34,7 @@ github.com/aws/aws-sdk-go/private/protocol/query/queryutil
 github.com/aws/aws-sdk-go/private/protocol/rest
 github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
 github.com/aws/aws-sdk-go/service/ec2
+github.com/aws/aws-sdk-go/service/ec2/ec2iface
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973
@@ -42,7 +43,7 @@ github.com/beorn7/perks/quantile
 github.com/davecgh/go-spew/spew
 # github.com/evanphx/json-patch v4.2.0+incompatible
 github.com/evanphx/json-patch
-# github.com/gardener/machine-controller-manager v0.27.0 => github.com/prashanth26/machine-controller-manager v0.0.0-20200409100037-4ca95fb0b734
+# github.com/gardener/machine-controller-manager v0.27.0 => github.com/prashanth26/machine-controller-manager v0.0.0-20200504174340-847aa0d17ffd
 github.com/gardener/machine-controller-manager/pkg/apis/machine
 github.com/gardener/machine-controller-manager/pkg/apis/machine/v1alpha1
 github.com/gardener/machine-controller-manager/pkg/apis/machine/validation
@@ -59,18 +60,21 @@ github.com/gardener/machine-controller-manager/pkg/client/listers/machine/v1alph
 github.com/gardener/machine-controller-manager/pkg/fakeclient
 github.com/gardener/machine-controller-manager/pkg/features
 github.com/gardener/machine-controller-manager/pkg/handlers
-github.com/gardener/machine-controller-manager/pkg/metrics
 github.com/gardener/machine-controller-manager/pkg/options
 github.com/gardener/machine-controller-manager/pkg/util/client/leaderelectionconfig
 github.com/gardener/machine-controller-manager/pkg/util/client/metrics/prometheus
 github.com/gardener/machine-controller-manager/pkg/util/clientbuilder/core
 github.com/gardener/machine-controller-manager/pkg/util/clientbuilder/machine
 github.com/gardener/machine-controller-manager/pkg/util/configz
-github.com/gardener/machine-controller-manager/pkg/util/hash
 github.com/gardener/machine-controller-manager/pkg/util/provider/drain
 github.com/gardener/machine-controller-manager/pkg/util/provider/driver
+github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/codes
+github.com/gardener/machine-controller-manager/pkg/util/provider/machinecodes/status
+github.com/gardener/machine-controller-manager/pkg/util/provider/machinecontroller
+github.com/gardener/machine-controller-manager/pkg/util/provider/machineutils
+github.com/gardener/machine-controller-manager/pkg/util/provider/metrics
+github.com/gardener/machine-controller-manager/pkg/util/provider/options
 github.com/gardener/machine-controller-manager/pkg/util/reflector/prometheus
-github.com/gardener/machine-controller-manager/pkg/util/taints
 github.com/gardener/machine-controller-manager/pkg/util/workqueue/prometheus
 # github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 github.com/gogo/protobuf/proto
@@ -116,7 +120,7 @@ github.com/matttproud/golang_protobuf_extensions/pbutil
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.1
 github.com/modern-go/reflect2
-# github.com/onsi/ginkgo v1.12.0 => github.com/onsi/ginkgo v1.8.0
+# github.com/onsi/ginkgo v1.12.0
 github.com/onsi/ginkgo
 github.com/onsi/ginkgo/config
 github.com/onsi/ginkgo/extensions/table
@@ -508,7 +512,7 @@ k8s.io/client-go/util/homedir
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/retry
 k8s.io/client-go/util/workqueue
-# k8s.io/cluster-bootstrap v0.0.0-00010101000000-000000000000 => k8s.io/cluster-bootstrap v0.0.0-20190918163108-da9fdfce26bb
+# k8s.io/cluster-bootstrap v0.0.0-20190918163108-da9fdfce26bb => k8s.io/cluster-bootstrap v0.0.0-20190918163108-da9fdfce26bb
 k8s.io/cluster-bootstrap/token/api
 k8s.io/cluster-bootstrap/token/util
 # k8s.io/component-base v0.0.0-20190918160511-547f6c5d7090
@@ -522,7 +526,6 @@ k8s.io/kube-openapi/pkg/util/proto
 # k8s.io/utils v0.0.0-20190801114015-581e00157fb1
 k8s.io/utils/buffer
 k8s.io/utils/integer
-k8s.io/utils/pointer
 k8s.io/utils/trace
 # sigs.k8s.io/yaml v1.1.0
 sigs.k8s.io/yaml

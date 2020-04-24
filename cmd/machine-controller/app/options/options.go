@@ -24,8 +24,8 @@ package options
 import (
 	"time"
 
-	machineconfig "github.com/gardener/machine-controller-aws/pkg/options"
 	drain "github.com/gardener/machine-controller-manager/pkg/util/provider/drain"
+	machineconfig "github.com/gardener/machine-controller-manager/pkg/util/provider/options"
 	"github.com/spf13/pflag"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -36,21 +36,21 @@ import (
 	_ "github.com/gardener/machine-controller-manager/pkg/features"
 )
 
-// MCMServer is the main context object for the controller manager.
-type MCMServer struct {
-	machineconfig.MachineControllerManagerConfiguration
+// MCServer is the main context object for the machine controller.
+type MCServer struct {
+	machineconfig.MachineControllerConfiguration
 
 	ControlKubeconfig string
 	TargetKubeconfig  string
 }
 
-// NewMCMServer creates a new MCMServer with a default config.
-func NewMCMServer() *MCMServer {
+// NewMCServer creates a new MCServer with a default config.
+func NewMCServer() *MCServer {
 
-	s := MCMServer{
+	s := MCServer{
 		// Part of these default values also present in 'cmd/cloud-controller-manager/app/options/options.go'.
 		// Please keep them in sync when doing update.
-		MachineControllerManagerConfiguration: machineconfig.MachineControllerManagerConfiguration{
+		MachineControllerConfiguration: machineconfig.MachineControllerConfiguration{
 			Port:                    10259,
 			Namespace:               "default",
 			Address:                 "0.0.0.0",
@@ -79,7 +79,7 @@ func NewMCMServer() *MCMServer {
 }
 
 // AddFlags adds flags for a specific CMServer to the specified FlagSet
-func (s *MCMServer) AddFlags(fs *pflag.FlagSet) {
+func (s *MCServer) AddFlags(fs *pflag.FlagSet) {
 	fs.Int32Var(&s.Port, "port", s.Port, "The port that the controller-manager's http service runs on")
 	fs.Var(machineconfig.IPVar{Val: &s.Address}, "address", "The IP address to serve on (set to 0.0.0.0 for all interfaces)")
 	fs.StringVar(&s.CloudProvider, "cloud-provider", s.CloudProvider, "The provider for cloud services.  Empty string for no provider.")
@@ -113,7 +113,7 @@ func (s *MCMServer) AddFlags(fs *pflag.FlagSet) {
 }
 
 // Validate is used to validate the options and config before launching the controller manager
-func (s *MCMServer) Validate() error {
+func (s *MCServer) Validate() error {
 	var errs []error
 	// TODO add validation
 	return utilerrors.NewAggregate(errs)
